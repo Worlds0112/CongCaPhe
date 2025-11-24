@@ -108,7 +108,7 @@ if (!session_id()) { // Chỉ start nếu session chưa được bắt đầu
         /* Class content (để đẩy nội dung xuống) */
         .content {
             margin-top: 100px;  /* Đẩy nội dung xuống dưới header cố định */
-            padding: 2rem;
+            /* padding: 2rem; */
             max-width: 1400px;
             margin-left: auto;
             margin-right: auto;
