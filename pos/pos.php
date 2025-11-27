@@ -265,6 +265,5 @@ if (mysqli_num_rows($result) > 0) {
 </script>
 
 <?php
-require '../includes/footer.php'; 
 disconnect_db();
 ?>
