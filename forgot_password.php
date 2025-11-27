@@ -4,19 +4,17 @@ require 'includes/connect.php';
 require 'includes/disconnect.php';
 
 $message = "";
-$step = 1; // Mặc định là Bước 1 (Xác minh)
+$step = 1; 
 $user_id_found = 0;
 
-// XỬ LÝ KHI FORM ĐƯỢC GỬI ĐI
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     connect_db();
 
-    // --- XỬ LÝ BƯỚC 1: KIỂM TRA TÀI KHOẢN & MÃ BẢO MẬT ---
+    // BƯỚC 1: KIỂM TRA
     if (isset($_POST['check_user'])) {
         $username = mysqli_real_escape_string($conn, $_POST['username']);
         $security_code = mysqli_real_escape_string($conn, $_POST['security_code']);
 
-        // Kiểm tra xem có user nào khớp cả tên và mã không
         $sql = "SELECT id FROM users WHERE username = ? AND security_code = ?";
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, "ss", $username, $security_code);
@@ -24,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $result = mysqli_stmt_get_result($stmt);
 
         if ($row = mysqli_fetch_assoc($result)) {
-            // Đúng rồi! Chuyển sang bước 2
             $step = 2;
             $user_id_found = $row['id'];
         } else {
@@ -33,34 +30,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         mysqli_stmt_close($stmt);
     }
 
-    // --- XỬ LÝ BƯỚC 2: ĐỔI MẬT KHẨU ---
+    // BƯỚC 2: ĐỔI PASS
     if (isset($_POST['change_pass'])) {
         $new_pass = $_POST['new_password'];
         $confirm_pass = $_POST['confirm_password'];
         $uid = (int)$_POST['user_id_hidden'];
 
         if ($new_pass === $confirm_pass) {
-            // Mã hóa mật khẩu mới
             $hashed_password = password_hash($new_pass, PASSWORD_DEFAULT);
-
             $sql = "UPDATE users SET password = ? WHERE id = ?";
             $stmt = mysqli_prepare($conn, $sql);
             mysqli_stmt_bind_param($stmt, "si", $hashed_password, $uid);
             
             if (mysqli_stmt_execute($stmt)) {
                 $message = "Đổi mật khẩu thành công! <a href='login.php'>Đăng nhập ngay</a>";
-                $step = 3; // Bước 3: Hoàn tất
+                $step = 3; 
             } else {
                 $message = "Lỗi hệ thống: " . mysqli_error($conn);
             }
             mysqli_stmt_close($stmt);
         } else {
             $message = "Mật khẩu nhập lại không khớp!";
-            $step = 2; // Quay lại bước 2 để nhập lại
+            $step = 2; 
             $user_id_found = $uid;
         }
     }
-    
     disconnect_db();
 }
 ?>
@@ -72,8 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Quên mật khẩu</title>
     <style>
         body { 
-            font-family: Arial, sans-serif; background-color: #f4f6f9; 
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9; 
             display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;
+            position: relative; /* Để định vị nút back */
         }
         .container {
             background-color: #fff; padding: 2.5rem; border-radius: 10px;
@@ -97,9 +93,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .error { background-color: #f8d7da; color: #721c24; }
         .success { background-color: #d4edda; color: #155724; }
         .back-link { display: block; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px; }
+
+        /* CSS CHO NÚT VỀ TRANG CHỦ (Giống trang Login) */
+        .back-home {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: #5B743A;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .back-home:hover {
+            transform: translateX(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .back-home svg {
+            width: 20px; height: 20px; fill: #5B743A;
+        }
     </style>
 </head>
 <body>
+
+    <a href="index.php" class="back-home">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Trang chủ
+    </a>
 
     <div class="container">
         <h2>Khôi phục mật khẩu</h2>
@@ -117,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <input type="text" name="username" required placeholder="Ví dụ: admin">
                 </div>
                 <div class="form-group">
-                    <label>Mã bảo mật (được cấp):</label>
+                    <label>Mã bảo mật:</label>
                     <input type="password" name="security_code" required placeholder="Nhập mã bảo mật">
                 </div>
                 <button type="submit" name="check_user">Tiếp tục</button>
@@ -141,9 +167,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </form>
             <a href="forgot_password.php" class="back-link">Hủy bỏ</a>
         <?php endif; ?>
-
-        <?php if ($step == 3): ?>
-            <?php endif; ?>
 
     </div>
 
