@@ -7,7 +7,7 @@ require '../includes/header.php';
 $order_id = (isset($_GET['id'])) ? (int)$_GET['id'] : 0;
 
 if ($order_id <= 0) {
-    echo "<h1>ID hóa đơn không hợp lệ.</h1>";
+    echo "<div class='admin-wrapper'><h1>ID hóa đơn không hợp lệ.</h1></div>";
     require '../includes/footer.php';
     disconnect_db();
     exit();
@@ -38,77 +38,116 @@ $result_details = mysqli_stmt_get_result($stmt_details);
 ?>
 
 <style>
-    h2 { color: #333; margin-bottom: 1rem; }
-    .order-summary {
-        background: #fff; padding: 20px; border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); margin-bottom: 20px;
+    /* Wrapper căn giữa giống các trang khác */
+    .admin-wrapper {
+        max-width: 1000px; /* Nhỏ hơn chút cho gọn */
+        margin: 0 auto;
+        padding: 30px 20px;
     }
-    .order-summary p { font-size: 16px; line-height: 1.6; }
+
+    h2 { color: #333; margin-bottom: 1.5rem; border-left: 5px solid #17a2b8; padding-left: 15px; }
     
+    /* Nút quay lại */
+    .btn-back {
+        display: inline-block;
+        background-color: #6c757d;
+        color: white;
+        padding: 8px 15px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+    .btn-back:hover { background-color: #5a6268; }
+
+    .order-summary {
+        background: #fff; padding: 25px; border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); margin-bottom: 30px;
+        border: 1px solid #eee;
+    }
+    .order-summary p { font-size: 16px; line-height: 1.8; margin: 0; color: #555; }
+    .order-summary strong { color: #333; min-width: 100px; display: inline-block; }
+    
+    h3 { margin-bottom: 15px; color: #444; }
+
     table { 
         width: 100%; border-collapse: collapse; background-color: white;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 8px; overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 10px; overflow: hidden;
     }
     th, td { 
-        border-bottom: 1px solid #ddd; padding: 12px 15px; text-align: left; vertical-align: middle;
+        border-bottom: 1px solid #eee; padding: 15px; text-align: left; vertical-align: middle;
     }
-    th { background-color: #f2f2f2; font-weight: 600; color: #333; }
+    th { background-color: #f8f9fa; font-weight: 700; color: #555; text-transform: uppercase; font-size: 13px; }
     tr:last-child td { border-bottom: none; }
-    img { max-width: 50px; border-radius: 4px; }
+    
+    img { 
+        width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #eee;
+    }
+    
     .total-row td {
-        border-top: 2px solid #333;
+        background-color: #f9f9f9;
         font-weight: bold;
         font-size: 18px;
+        color: #d32f2f;
+        padding-top: 20px;
+        padding-bottom: 20px;
     }
 </style>
 
-<?php if ($order_info): ?>
-    <h2>Chi tiết Hóa đơn: #<?php echo $order_info['id']; ?></h2>
+<div class="admin-wrapper">
 
-    <div class="order-summary">
-        <p><strong>Ngày tạo:</strong> <?php echo htmlspecialchars($order_info['order_date']); ?></p>
-        <p><strong>Nhân viên:</strong> <?php echo htmlspecialchars($order_info['full_name']); ?></p>
-    </div>
+    <a href="order_list.php" class="btn-back">← Quay lại danh sách hóa đơn</a>
 
-    <h3>Các món đã mua</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Ảnh</th>
-                <th>Tên sản phẩm</th>
-                <th>Số lượng</th>
-                <th>Đơn giá</th>
-                <th>Thành tiền</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-            if ($result_details && mysqli_num_rows($result_details) > 0) {
-                while ($item = mysqli_fetch_assoc($result_details)) {
-            ?>
+    <?php if ($order_info): ?>
+        <h2>Chi tiết Hóa đơn: #<?php echo $order_info['id']; ?></h2>
+
+        <div class="order-summary">
+            <p><strong>Ngày tạo:</strong> <?php echo date('d/m/Y H:i', strtotime($order_info['order_date'])); ?></p>
+            <p><strong>Nhân viên:</strong> <?php echo htmlspecialchars($order_info['full_name']); ?></p>
+        </div>
+
+        <h3>Danh sách món đã mua</h3>
+        <table>
+            <thead>
                 <tr>
-                    <td><img src="uploads/<?php echo htmlspecialchars($item['image']); ?>" alt="Ảnh"></td>
-                    <td><?php echo htmlspecialchars($item['name']); ?></td>
-                    <td><?php echo $item['quantity']; ?></td>
-                    <td><?php echo number_format($item['price']); ?> VNĐ</td>
-                    <td><?php echo number_format($item['price'] * $item['quantity']); ?> VNĐ</td>
+                    <th>Ảnh</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                    <th>Thành tiền</th>
                 </tr>
-            <?php
-                } // Kết thúc vòng lặp
-            }
-            ?>
-            <tr class="total-row">
-                <td colspan="4" style="text-align: right;">TỔNG CỘNG</td>
-                <td><?php echo number_format($order_info['total_amount']); ?> VNĐ</td>
-            </tr>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php
+                if ($result_details && mysqli_num_rows($result_details) > 0) {
+                    while ($item = mysqli_fetch_assoc($result_details)) {
+                ?>
+                    <tr>
+                        <td>
+                            <img src="uploads/<?php echo htmlspecialchars($item['image']); ?>" alt="Img">
+                        </td>
+                        <td><?php echo htmlspecialchars($item['name']); ?></td>
+                        <td>x<?php echo $item['quantity']; ?></td>
+                        <td><?php echo number_format($item['price']); ?> ₫</td>
+                        <td><?php echo number_format($item['price'] * $item['quantity']); ?> ₫</td>
+                    </tr>
+                <?php
+                    } // Kết thúc vòng lặp
+                }
+                ?>
+                <tr class="total-row">
+                    <td colspan="4" style="text-align: right; color: #333;">TỔNG CỘNG:</td>
+                    <td><?php echo number_format($order_info['total_amount']); ?> ₫</td>
+                </tr>
+            </tbody>
+        </table>
 
-<?php else: ?>
-    <h2>Không tìm thấy hóa đơn.</h2>
-<?php endif; ?>
+    <?php else: ?>
+        <h2>Không tìm thấy hóa đơn này.</h2>
+    <?php endif; ?>
 
-<?php
+</div> <?php
 // DỌN DẸP VÀ GỌI FOOTER
 if ($result_details) {
     mysqli_free_result($result_details);

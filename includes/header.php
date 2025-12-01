@@ -3,6 +3,7 @@
 if (!session_id()) { // Chỉ start nếu session chưa được bắt đầu
     session_start();
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -148,6 +149,7 @@ if (!session_id()) { // Chỉ start nếu session chưa được bắt đầu
                     if ($_SESSION['role'] == 'admin'): ?>
                         <li><a href="/QuanLyCaPhe/admin/product_list.php">Quản lý Sản phẩm</a></li>
                         <li><a href="/QuanLyCaPhe/admin/order_list.php">Quản lý Hóa đơn</a></li>
+                        <li><a href="/QuanLyCaPhe/admin/user_list.php">Nhân viên</a></li>
                     <?php endif; ?>
                     
                     <li><a href="/QuanLyCaphe/pos/pos.php">Thực đơn (Bán hàng)</a></li>

@@ -75,7 +75,7 @@ $result = mysqli_query($conn, $sql);
     .actions a {
         text-decoration: none;
         padding: 6px 12px;
-        margin: 0 3px;
+        margin: 0px;
         border-radius: 4px;
         color: white;
         font-size: 13px;
