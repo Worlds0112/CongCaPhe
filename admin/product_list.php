@@ -20,7 +20,7 @@ $result = mysqli_query($conn, $sql);
         color: #333;
         margin-bottom: 1.5rem;
         font-size: 24px;
-        border-left: 5px solid #28a745; /* Tạo điểm nhấn xanh lá bên trái */
+        border-left: 5px solid #28a745;
         padding-left: 15px;
     }
 
