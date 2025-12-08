@@ -1,6 +1,18 @@
 <?php
 require '../includes/auth_pos.php'; 
 require '../includes/header.php'; 
+require '../includes/time_check.php';
+
+// Lấy thông tin ca của user đang đăng nhập
+// (Bạn cần chắc chắn lúc login đã lưu shift vào session, hoặc query lại từ DB)
+// Để chắc ăn, ta query lại từ DB:
+$uid = $_SESSION['user_id'];
+$q_user = mysqli_query($conn, "SELECT shift FROM users WHERE id = $uid");
+$r_user = mysqli_fetch_assoc($q_user);
+$my_shift = $r_user['shift'];
+
+// Biến kiểm tra quyền bán hàng
+$can_sell = is_working_hour($my_shift);
 
 // Lấy danh sách món
 $sql = "SELECT p.*, c.name as category_name 
@@ -109,6 +121,12 @@ if (mysqli_num_rows($result) > 0) {
 
 <div class="pos-container">
     
+    <?php if (!$can_sell): ?>
+        <div style="position: absolute; top: 80px; left: 0; width: 100%; background: #ffc107; color: #333; text-align: center; padding: 10px; z-index: 999; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+            ⚠️ Bạn đang truy cập ngoài ca làm việc (<?php echo get_shift_name($my_shift); ?>). Chức năng thanh toán đã bị khóa.
+        </div>
+    <?php endif; ?>
+
     <div class="product-list-container">
         <?php
         if (!empty($menu_data)) {
@@ -145,9 +163,14 @@ if (mysqli_num_rows($result) > 0) {
                 <span>TỔNG:</span>
                 <span id="cart-total" style="color: #d32f2f;">0 đ</span>
             </div>
-            <button id="checkout-btn" onclick="checkout()">THANH TOÁN</button>
+            <button id="checkout-btn" onclick="checkout()" 
+                <?php echo (!$can_sell) ? 'disabled style="background-color: #ccc; cursor: not-allowed;"' : ''; ?>>
+                <?php echo (!$can_sell) ? 'KHÓA THANH TOÁN' : 'THANH TOÁN'; ?>
+            </button>
         </div>
     </div>
+
+    
 
 </div>
 

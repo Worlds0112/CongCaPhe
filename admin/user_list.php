@@ -42,7 +42,8 @@ $result = mysqli_query($conn, $sql);
                 <th>Tên đăng nhập</th>
                 <th>Họ và tên</th>
                 <th>Vai trò</th>
-                <th>Mã bảo mật</th> <th style="text-align: center;">Hành động</th>
+                <th>Ca làm việc</th> <th>Mã bảo mật</th>
+                <th style="text-align: center;">Hành động</th>
             </tr>
         </thead>
         <tbody>
@@ -58,10 +59,25 @@ $result = mysqli_query($conn, $sql);
                         <span class="role-badge role-staff">Nhân viên</span>
                     <?php endif; ?>
                 </td>
+                <td>
+                    <?php 
+                    switch ($row['shift']) {
+                        case 'sang': echo '<span style="color:green; font-weight:bold;">Ca Sáng</span>'; break;
+                        case 'chieu': echo '<span style="color:orange; font-weight:bold;">Ca Chiều</span>'; break;
+                        case 'toi': echo '<span style="color:purple; font-weight:bold;">Ca Tối</span>'; break;
+                        default: echo 'Full time';
+                    }
+                    ?>
+                </td>
                 <td><?php echo htmlspecialchars($row['security_code']); ?></td>
                 <td style="text-align: center;">
+    
+                    <a href="user_view.php?id=<?php echo $row['id']; ?>" 
+                    style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 500; margin-right: 5px;">
+                    Xem
+                    </a>
+
                     <?php 
-                    // Không cho phép xóa chính mình
                     if ($row['id'] == $_SESSION['user_id']) {
                         echo '<a href="#" class="btn-delete btn-disabled">Xóa</a>';
                     } else {

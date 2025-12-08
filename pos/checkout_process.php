@@ -1,8 +1,21 @@
 <?php
 // 1. BẢO VỆ FILE VÀ KẾT NỐI CSDL
-require '../includes/auth_pos.php'; 
+require '../includes/auth_pos.php';
+require '../includes/time_check.php'; 
 
 header('Content-Type: application/json');
+
+$uid = $_SESSION['user_id'];
+$q_check = mysqli_query($conn, "SELECT shift FROM users WHERE id = $uid");
+$user_data = mysqli_fetch_assoc($q_check);
+
+if (!is_working_hour($user_data['shift'])) {
+    echo json_encode([
+        'success' => false, 
+        'message' => 'LỖI: Bạn không thể thanh toán ngoài ca làm việc!'
+    ]);
+    exit(); // Dừng ngay lập tức
+}
 
 // 2. NHẬN DỮ LIỆU JSON TỪ JAVASCRIPT
 $json_data = file_get_contents('php://input');
