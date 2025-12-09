@@ -2,6 +2,7 @@
 require '../includes/auth_pos.php'; 
 require '../includes/header.php'; 
 require '../includes/time_check.php';
+require '../includes/auto_shift_check.php';
 
 // Tên nhân viên
 $staff_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : $_SESSION['username'];

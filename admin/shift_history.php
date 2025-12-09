@@ -2,6 +2,8 @@
 // 1. BẢO VỆ TRANG (Chỉ Admin mới được vào)
 require '../includes/auth_admin.php';
 require '../includes/header.php';
+require '../includes/admin_sidebar.php'; 
+echo '<div class="main-with-sidebar">';
 
 // 2. XỬ LÝ LỌC NGÀY
 $filter_date = isset($_GET['date']) ? $_GET['date'] : '';
@@ -30,11 +32,22 @@ $result = mysqli_query($conn, $sql);
     .filter-select:focus {
         border-color: #ffc107;
     }
-    
+
     /* CSS cho trạng thái chênh lệch */
-    .diff-ok { color: #aaa; font-weight: bold; }
-    .diff-pos { color: #28a745; font-weight: bold; }
-    .diff-neg { color: #dc3545; font-weight: bold; }
+    .diff-ok {
+        color: #aaa;
+        font-weight: bold;
+    }
+
+    .diff-pos {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .diff-neg {
+        color: #dc3545;
+        font-weight: bold;
+    }
 </style>
 
 <div class="admin-wrapper">
@@ -63,7 +76,8 @@ $result = mysqli_query($conn, $sql);
                     <th>Doanh thu (Máy)</th>
                     <th>Thực tế (Két)</th>
                     <th>Chênh lệch</th>
-                    <th>Ghi chú Kho</th> <th>Ghi chú Chung</th>
+                    <th>Ghi chú Kho</th>
+                    <th>Ghi chú Chung</th>
                 </tr>
             </thead>
             <tbody>
@@ -101,16 +115,24 @@ $result = mysqli_query($conn, $sql);
                             }
                             ?>
                         </td>
-                        
+
                         <td style="color: #d63384; font-size: 13px; max-width: 200px;">
-                            <?php 
+                            <?php
                             // Kiểm tra nếu có ghi chú kho thì hiện, không thì gạch ngang
-                            echo !empty($row['inventory_notes']) ? nl2br(htmlspecialchars($row['inventory_notes'])) : '<span style="color:#ccc">-</span>'; 
+                            echo !empty($row['inventory_notes']) ? nl2br(htmlspecialchars($row['inventory_notes'])) : '<span style="color:#ccc">-</span>';
                             ?>
                         </td>
 
                         <td style="color: #666; font-style: italic; max-width: 200px;">
                             <?php echo !empty($row['notes']) ? nl2br(htmlspecialchars($row['notes'])) : '<span style="color:#ccc">-</span>'; ?>
+                        </td>
+                        <td>
+                            <?php if ($row['user_id'] == 0): ?>
+                                <span style="color:red; font-weight:bold;">🤖 HỆ THỐNG (AUTO)</span>
+                            <?php else: ?>
+                                <?php echo htmlspecialchars($row['full_name']); ?><br>
+                                <small style="color:#999"><?php echo $row['username']; ?></small>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endwhile; ?>
@@ -127,5 +149,5 @@ $result = mysqli_query($conn, $sql);
 <?php
 if ($result) mysqli_free_result($result);
 disconnect_db();
-require '../includes/footer.php';
+echo '</div>';
 ?>

@@ -1,6 +1,8 @@
 <?php
 require '../includes/auth_admin.php'; 
 require '../includes/header.php'; 
+require '../includes/admin_sidebar.php'; 
+echo '<div class="main-with-sidebar">';
 
 date_default_timezone_set('Asia/Ho_Chi_Minh');
 $today = date('Y-m-d');
@@ -270,4 +272,6 @@ for ($i = 6; $i >= 0; $i--) {
     });
 </script>
 
-<?php require '../includes/footer.php'; ?>
+<?php 
+echo '</div>';
+?>

@@ -2,6 +2,8 @@
 // 1. BẢO VỆ TRANG
 require '../includes/auth_admin.php';
 require '../includes/header.php';
+require '../includes/admin_sidebar.php'; 
+echo '<div class="main-with-sidebar">';
 
 // --- XỬ LÝ TÌM KIẾM & SẮP XẾP ---
 $search = "";
@@ -136,5 +138,5 @@ $result = mysqli_query($conn, $sql);
 <?php
 if ($result) mysqli_free_result($result);
 disconnect_db();
-require '../includes/footer.php';
+echo '</div>';
 ?>

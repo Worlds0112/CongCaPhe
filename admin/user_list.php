@@ -1,6 +1,8 @@
 <?php
 require '../includes/auth_admin.php';
 require '../includes/header.php';
+require '../includes/admin_sidebar.php'; 
+echo '<div class="main-with-sidebar">';
 
 // --- XỬ LÝ TÌM KIẾM & SẮP XẾP ---
 $search = "";
@@ -171,5 +173,5 @@ $result = mysqli_query($conn, $sql);
 </div>
 
 <?php
-require '../includes/footer.php';
+echo '</div>';
 ?>

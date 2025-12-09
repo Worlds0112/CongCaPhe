@@ -2,6 +2,7 @@
 require '../includes/auth_pos.php'; 
 require '../includes/header.php'; 
 require '../includes/time_check.php';
+require '../includes/auto_shift_check.php';
 
 // --- PHẦN XỬ LÝ PHP (Giữ nguyên) ---
 $uid = $_SESSION['user_id'];

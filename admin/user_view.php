@@ -1,29 +1,27 @@
 <?php
-// --- THAY ĐỔI CƠ CHẾ BẢO VỆ ---
+// 1. KHỞI TẠO SESSION VÀ KIỂM TRA ĐĂNG NHẬP
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit();
 }
 
-// Kết nối CSDL thủ công
+// 2. KẾT NỐI CSDL
 require '../includes/connect.php';
 connect_db();
-// ------------------------------
-
 require '../includes/header.php'; 
 
-// Lấy ID từ URL
+// 3. LẤY ID TỪ URL
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-// --- BẢO MẬT ---
+// 4. BẢO MẬT: CHẶN SOI HỒ SƠ NGƯỜI KHÁC (TRỪ ADMIN)
 if ($_SESSION['role'] != 'admin' && $_SESSION['user_id'] != $id) {
-    echo "<div class='admin-wrapper'><h3 style='color:red'>Bạn không có quyền xem hồ sơ người khác!</h3></div>";
+    echo "<div class='admin-wrapper'><h3 style='color:red'>Bạn không có quyền xem hồ sơ này!</h3></div>";
     require '../includes/footer.php';
     exit();
 }
-// ----------------
 
+// 5. TRUY VẤN DỮ LIỆU USER
 $sql = "SELECT * FROM users WHERE id = $id";
 $result = mysqli_query($conn, $sql);
 $user = mysqli_fetch_assoc($result);
@@ -34,18 +32,16 @@ if (!$user) {
     exit();
 }
 
-// --- XỬ LÝ HIỂN THỊ ẢNH AVATAR (LOGIC MỚI) ---
+// 6. XỬ LÝ AVATAR
 $avatar_name = !empty($user['avatar']) ? $user['avatar'] : 'default_user.png';
 $avatar_path = "uploads/" . $avatar_name;
 
-// Kiểm tra xem file ảnh có thực sự tồn tại trong thư mục uploads không
-// __DIR__ là đường dẫn đến thư mục chứa file hiện tại (admin)
+// Kiểm tra file ảnh có tồn tại thật không
 if (!file_exists(__DIR__ . '/' . $avatar_path)) {
-    $avatar_path = "uploads/default_user.png"; // Nếu không thấy file thì lấy ảnh mặc định
+    $avatar_path = "uploads/default_user.png"; 
 }
-// ---------------------------------------------
 
-// Tính tuổi
+// 7. TÍNH TUỔI & FORMAT CA LÀM VIỆC
 $current_year = date("Y");
 $age = $current_year - $user['birth_year'];
 
@@ -57,60 +53,79 @@ function get_shift_label($code) {
         default: return "Toàn thời gian";
     }
 }
+
+// 8. LOGIC NÚT "QUAY LẠI" (THÔNG MINH)
+$back_link = "../index.php"; 
+$back_text = "← Về trang chủ";
+
+// Nếu là Admin thì cho quay về danh sách quản lý
+if ($_SESSION['role'] == 'admin') {
+    $back_link = "user_list.php";
+    $back_text = "← Quay lại danh sách";
+}
 ?>
 
 <style>
     .admin-wrapper { max-width: 900px; margin: 0 auto; padding: 30px 20px; }
-    .profile-card {
-        background: white; border-radius: 12px; overflow: hidden;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        display: flex; flex-direction: column;
-    }
-    .profile-header {
-        background: linear-gradient(135deg, #6f42c1, #8e44ad);
-        padding: 30px; color: white; text-align: center;
+    
+    .profile-card { 
+        background: white; border-radius: 12px; overflow: hidden; 
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1); 
+        display: flex; flex-direction: column; 
     }
     
-    /* Chỉnh lại avatar cho đẹp */
-    .avatar-container {
-        width: 130px; 
-        height: 130px; 
-        margin: 0 auto 15px auto;
-        border-radius: 50%;
-        border: 4px solid rgba(255,255,255,0.4);
-        overflow: hidden; /* Cắt ảnh thừa ra ngoài hình tròn */
-        background: white;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    .profile-header { 
+        background: linear-gradient(135deg, #6f42c1, #8e44ad); 
+        padding: 40px 20px; color: white; text-align: center; 
     }
-    .avatar-container img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover; /* Đảm bảo ảnh không bị méo */
+    
+    .avatar-container { 
+        width: 140px; height: 140px; margin: 0 auto 20px auto; 
+        border-radius: 50%; border: 5px solid rgba(255,255,255,0.3); 
+        overflow: hidden; background: white; 
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
     }
-
-    .profile-name { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
-    .profile-role { opacity: 0.9; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
-
-    .profile-body { padding: 30px; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .info-item { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #ddd; }
-    .info-label { font-size: 12px; color: #777; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
-    .info-value { font-size: 16px; color: #333; font-weight: 500; }
+    .avatar-container img { 
+        width: 100%; height: 100%; object-fit: cover; 
+    }
     
-    .shift-box { border-color: #ffc107; background: #fffdf0; }
-    .btn-back { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #555; font-weight: bold; }
+    .profile-name { font-size: 26px; font-weight: bold; margin-bottom: 5px; }
+    .profile-role { opacity: 0.9; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; }
     
-    /* Nút sửa (ẩn hiện tùy ý) */
-    .btn-edit-profile {
+    .btn-edit-profile { 
         display: inline-block; background: rgba(255,255,255,0.2); color: white; 
-        padding: 6px 16px; border-radius: 20px; text-decoration: none; font-size: 13px;
-        transition: 0.3s; margin-bottom: 15px;
+        padding: 8px 20px; border-radius: 20px; text-decoration: none; 
+        font-size: 13px; transition: 0.3s; margin-top: 15px; border: 1px solid rgba(255,255,255,0.4);
     }
     .btn-edit-profile:hover { background: rgba(255,255,255,0.4); }
+
+    .profile-body { padding: 40px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+    
+    /* Responsive cho mobile */
+    @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+
+    .info-item { 
+        background: #f8f9fa; padding: 15px 20px; border-radius: 8px; 
+        border-left: 4px solid #ddd; 
+    }
+    .info-label { font-size: 12px; color: #777; text-transform: uppercase; font-weight: bold; margin-bottom: 8px; }
+    .info-value { font-size: 16px; color: #333; font-weight: 600; }
+    
+    .shift-box { border-color: #ffc107; background: #fffdf0; }
+    
+    .btn-back { 
+        display: inline-block; margin-bottom: 20px; 
+        text-decoration: none; color: #555; font-weight: bold; 
+        background: #e9ecef; padding: 8px 15px; border-radius: 5px;
+        transition: 0.2s;
+    }
+    .btn-back:hover { background: #dee2e6; color: #333; }
 </style>
 
 <div class="admin-wrapper">
-    <a href="user_list.php" class="btn-back">← Quay lại danh sách</a>
+    
+    <a href="<?php echo $back_link; ?>" class="btn-back"><?php echo $back_text; ?></a>
 
     <div class="profile-card">
         <div class="profile-header">
@@ -119,15 +134,16 @@ function get_shift_label($code) {
                 <img src="<?php echo $avatar_path; ?>" alt="Avatar">
             </div>
 
-            <div style="text-align: center;">
-                <a href="user_edit.php?id=<?php echo $user['id']; ?>" class="btn-edit-profile">
-                ✏️ Sửa hồ sơ
-                </a>
-            </div>
-
             <div class="profile-name"><?php echo htmlspecialchars($user['full_name']); ?></div>
+            
             <div class="profile-role">
                 <?php echo ($user['role'] == 'admin') ? 'Quản Trị Viên' : 'Nhân Viên Bán Hàng'; ?>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="user_edit.php?id=<?php echo $user['id']; ?>" class="btn-edit-profile">
+                    ✏️ Cập nhật hồ sơ
+                </a>
             </div>
         </div>
 
@@ -140,7 +156,7 @@ function get_shift_label($code) {
                 </div>
 
                 <div class="info-item shift-box">
-                    <div class="info-label">Ca làm việc hiện tại</div>
+                    <div class="info-label">Ca làm việc</div>
                     <div class="info-value"><?php echo get_shift_label($user['shift']); ?></div>
                 </div>
 
@@ -160,11 +176,13 @@ function get_shift_label($code) {
                 </div>
 
                 <div class="info-item">
-                    <div class="info-label">Mã bảo mật</div>
-                    <div class="info-value" style="letter-spacing: 2px;">***<?php echo substr($user['security_code'], -2); ?></div>
+                    <div class="info-label">Mã bảo mật (Quên MK)</div>
+                    <div class="info-value" style="letter-spacing: 3px;">
+                        ***<?php echo substr($user['security_code'], -2); ?>
+                    </div>
                 </div>
 
-                <div class="info-item" style="grid-column: span 2;">
+                <div class="info-item" style="grid-column: 1 / -1;">
                     <div class="info-label">Địa chỉ</div>
                     <div class="info-value"><?php echo $user['address'] ? htmlspecialchars($user['address']) : 'Chưa cập nhật'; ?></div>
                 </div>
@@ -174,4 +192,8 @@ function get_shift_label($code) {
     </div>
 </div>
 
-<?php require '../includes/footer.php'; ?>
+<?php 
+// Đóng kết nối
+disconnect_db();
+require '../includes/footer.php'; 
+?>
