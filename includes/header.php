@@ -24,7 +24,6 @@ if (!session_id()) { // Chỉ start nếu session chưa được bắt đầu
             if (isset($_SESSION['user_id'])): ?>
             <nav>
                 <ul>
-                    <li><a href="/QuanLyCaPhe/index.php">Trang chủ</a></li>
                     
                     <?php // Chỉ Admin thấy link quản lý
                     if ($_SESSION['role'] == 'admin'): ?>
@@ -33,6 +32,7 @@ if (!session_id()) { // Chỉ start nếu session chưa được bắt đầu
                         <li><a href="/QuanLyCaPhe/admin/user_list.php">Nhân viên</a></li>
                         
                         <li><a href="/QuanLyCaPhe/admin/shift_history.php">Lịch sử ca</a></li>
+                        <li><a href="/QuanLyCaPhe/admin/stats.php">Thống kê</a></li>
                     <?php endif; ?>
                     
                     <li><a href="/QuanLyCaPhe/pos/pos.php">Thực đơn</a></li>

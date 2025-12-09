@@ -134,3 +134,21 @@ a.btn, button.btn {
 .diff-ok { color: #aaa; font-weight: bold; }
 .diff-pos { color: #28a745; font-weight: bold; }
 .diff-neg { color: #dc3545; font-weight: bold; }
+
+.filter-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* 2. Cập nhật lại .filter-bar trong Global để nó đẩy nút "Thêm mới" sang phải */
+/* Tìm class .filter-bar trong file Global và thêm dòng: justify-content: space-between; */
+.filter-bar {
+    justify-content: space-between; /* Cái này file con có mà file Global thiếu */
+}
+
+/* 3. (Tùy chọn) Nếu thích màu focus viền xanh lá tươi (#28a745) thay vì xanh rêu (#5B743A) */
+.filter-input:focus, .filter-select:focus { 
+    border-color: #28a745; 
+}
