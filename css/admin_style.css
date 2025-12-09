@@ -1,0 +1,136 @@
+/* --- KHUNG BAO QUANH (WRAPPER) --- */
+.admin-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+    margin-top: 20px; /* Cách header ra một chút */
+}
+
+/* --- TIÊU ĐỀ TRANG --- */
+h2 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 24px;
+    border-left: 5px solid #5B743A; /* Màu xanh mặc định */
+    padding-left: 15px;
+}
+
+/* Header riêng cho từng trang (nếu muốn đổi màu) */
+h2.title-product { border-color: #28a745; } /* Xanh lá */
+h2.title-order { border-color: #17a2b8; }   /* Xanh dương nhạt */
+h2.title-user { border-color: #6f42c1; }    /* Tím */
+h2.title-history { border-color: #ffc107; } /* Vàng */
+
+/* --- BẢNG DỮ LIỆU (TABLE) --- */
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    background-color: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+th, td { 
+    border-bottom: 1px solid #eee; 
+    padding: 15px 20px; 
+    text-align: left; 
+    vertical-align: middle;
+}
+th { 
+    background-color: #f8f9fa; 
+    font-weight: 700; 
+    color: #555; 
+    text-transform: uppercase; 
+    font-size: 13px;
+}
+tr:hover { background-color: #f1f3f5; }
+
+/* Ảnh nhỏ trong bảng */
+table img { 
+    max-width: 60px; 
+    border-radius: 6px; 
+    border: 1px solid #ddd; 
+    padding: 2px; 
+}
+
+/* --- CÁC LOẠI NÚT (BUTTONS) --- */
+a.btn, button.btn {
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Nút Thêm mới (To hơn chút) */
+.btn-add {
+    display: inline-block;
+    background-color: #28a745; 
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+.btn-add:hover { background-color: #218838; transform: translateY(-2px); }
+
+/* Các nút hành động nhỏ */
+.btn-view { background-color: #17a2b8; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; margin-right: 5px; }
+.btn-view:hover { background-color: #138496; }
+
+.btn-edit { background-color: #007bff; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; margin-right: 5px; }
+.btn-edit:hover { background-color: #0069d9; }
+
+.btn-delete { background-color: #dc3545; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; }
+.btn-delete:hover { background-color: #c82333; }
+
+.btn-disabled { background-color: #ccc; pointer-events: none; }
+
+/* --- THANH TÌM KIẾM & LỌC (FILTER BAR) --- */
+.filter-bar {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.filter-input, .filter-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    outline: none;
+    font-size: 14px;
+}
+.filter-input:focus, .filter-select:focus { border-color: #5B743A; }
+
+.btn-search {
+    background-color: #333;
+    color: white;
+    border: none;
+    padding: 9px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.btn-reset { color: #dc3545; text-decoration: none; font-weight: 500; font-size: 14px; margin-left: 10px; }
+
+/* --- CÁC NHÃN TRẠNG THÁI (BADGES) --- */
+.role-badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; }
+.role-admin { background-color: #dc3545; }
+.role-staff { background-color: #28a745; }
+
+/* Màu chênh lệch tiền */
+.diff-ok { color: #aaa; font-weight: bold; }
+.diff-pos { color: #28a745; font-weight: bold; }
+.diff-neg { color: #dc3545; font-weight: bold; }

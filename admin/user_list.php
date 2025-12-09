@@ -33,31 +33,6 @@ $sql .= " ORDER BY $sort_by $order_dir, username ASC";
 $result = mysqli_query($conn, $sql);
 ?>
 
-<style>
-    /* CSS CŨ GIỮ NGUYÊN */
-    .admin-wrapper { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
-    h2 { color: #333; margin-bottom: 1.5rem; border-left: 5px solid #6f42c1; padding-left: 15px; } 
-    .btn-add { display: inline-block; background-color: #6f42c1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; }
-    .btn-add:hover { background-color: #59359a; }
-    table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; margin-top: 20px; }
-    th, td { border-bottom: 1px solid #eee; padding: 15px 20px; text-align: left; vertical-align: middle; }
-    th { background-color: #f8f9fa; font-weight: 700; color: #555; text-transform: uppercase; font-size: 13px; }
-    tr:hover { background-color: #f1f3f5; }
-    .role-badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; }
-    .role-admin { background-color: #dc3545; }
-    .role-staff { background-color: #28a745; } 
-    .btn-delete { text-decoration: none; padding: 6px 12px; border-radius: 4px; color: white; font-size: 13px; font-weight: 500; background-color: #dc3545; }
-    .btn-delete:hover { background-color: #c82333; }
-    .btn-disabled { background-color: #ccc; cursor: not-allowed; pointer-events: none; }
-
-    /* CSS THANH TÌM KIẾM (MỚI) */
-    .filter-bar { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-    .filter-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .filter-input, .filter-select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; outline: none; }
-    .filter-input:focus, .filter-select:focus { border-color: #6f42c1; }
-    .btn-search { background-color: #333; color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: 500; }
-    .btn-reset { color: #dc3545; text-decoration: none; font-weight: 500; font-size: 14px; margin-left: 5px; }
-</style>
 
 <div class="admin-wrapper">
     <div style="display:flex; justify-content:space-between; align-items:center;">
