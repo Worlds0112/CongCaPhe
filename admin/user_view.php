@@ -44,8 +44,8 @@ $age = $current_year - $user['birth_year'];
 // Hàm hiển thị tên ca (copy từ time_check cho tiện hiển thị)
 function get_shift_label($code) {
     switch ($code) {
-        case 'sang': return "Ca Sáng (06:00 - 14:00)";
-        case 'chieu': return "Ca Chiều (14:00 - 22:00)";
+        case 'sang': return "Ca Sáng (06:00 - 12:00)";
+        case 'chieu': return "Ca Chiều (12:00 - 18:00)";
         case 'toi': return "Ca Tối (18:00 - 23:00)";
         default: return "Toàn thời gian";
     }

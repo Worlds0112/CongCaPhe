@@ -3,56 +3,96 @@
 require '../includes/auth_admin.php'; 
 require '../includes/header.php'; 
 
-// 2. LẤY DỮ LIỆU
+// --- XỬ LÝ TÌM KIẾM & SẮP XẾP ---
+$search = "";
+$sort_by = "orders.order_date"; // Mặc định sắp xếp theo ngày
+$order_dir = "DESC";            // Mới nhất lên đầu
+
+// 1. Lấy từ khóa
+if (isset($_GET['search'])) {
+    $search = trim($_GET['search']);
+}
+
+// 2. Whitelist cột sắp xếp (Phải map đúng tên cột trong SQL có JOIN)
+$allowed_sort = [
+    'id' => 'orders.id',
+    'date' => 'orders.order_date',
+    'amount' => 'orders.total_amount',
+    'user' => 'users.full_name'
+];
+
+if (isset($_GET['sort_by']) && array_key_exists($_GET['sort_by'], $allowed_sort)) {
+    $sort_by = $allowed_sort[$_GET['sort_by']];
+}
+
+// 3. Chiều sắp xếp
+if (isset($_GET['order_dir']) && in_array(strtoupper($_GET['order_dir']), ['ASC', 'DESC'])) {
+    $order_dir = strtoupper($_GET['order_dir']);
+}
+
+// 4. Query SQL
 $sql = "SELECT orders.id, orders.order_date, orders.total_amount, users.full_name
         FROM orders
         JOIN users ON orders.user_id = users.id
-        ORDER BY orders.order_date DESC";
+        WHERE 1=1";
+
+if (!empty($search)) {
+    $s = mysqli_real_escape_string($conn, $search);
+    // Tìm theo ID đơn hoặc Tên nhân viên
+    $sql .= " AND (orders.id LIKE '%$s%' OR users.full_name LIKE '%$s%')";
+}
+
+$sql .= " ORDER BY $sort_by $order_dir";
 $result = mysqli_query($conn, $sql);
 ?>
 
 <style>
-    /* 🟢 CSS MỚI: Căn lề */
-    .admin-wrapper {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 30px 20px;
-    }
-
-    h2 { 
-        color: #333; margin-bottom: 1.5rem; font-size: 24px;
-        border-left: 5px solid #17a2b8; /* Điểm nhấn màu xanh dương nhạt cho Hóa đơn */
-        padding-left: 15px;
-    }
-    
-    table { 
-        width: 100%; border-collapse: collapse; background-color: white;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 10px; overflow: hidden;
-    }
-    th, td { 
-        border-bottom: 1px solid #eee; padding: 15px 20px; text-align: left; vertical-align: middle;
-    }
+    /* CSS CŨ GIỮ NGUYÊN */
+    .admin-wrapper { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+    h2 { color: #333; margin-bottom: 1.5rem; font-size: 24px; border-left: 5px solid #17a2b8; padding-left: 15px; }
+    table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 10px; overflow: hidden; }
+    th, td { border-bottom: 1px solid #eee; padding: 15px 20px; text-align: left; vertical-align: middle; }
     th { background-color: #f8f9fa; font-weight: 700; color: #555; text-transform: uppercase; font-size: 13px; }
     tr:hover { background-color: #f1f3f5; }
-    
-    .btn-view {
-        text-decoration: none; padding: 6px 12px; border-radius: 4px;
-        color: white; font-size: 13px; font-weight: 500;
-        background-color: #17a2b8; margin-right: 5px;
-    }
+    .btn-view { text-decoration: none; padding: 6px 12px; border-radius: 4px; color: white; font-size: 13px; font-weight: 500; background-color: #17a2b8; margin-right: 5px; }
     .btn-view:hover { background-color: #138496; }
-    
-    .btn-delete {
-        text-decoration: none; padding: 6px 12px; border-radius: 4px;
-        color: white; font-size: 13px; font-weight: 500;
-        background-color: #dc3545;
-    }
+    .btn-delete { text-decoration: none; padding: 6px 12px; border-radius: 4px; color: white; font-size: 13px; font-weight: 500; background-color: #dc3545; }
     .btn-delete:hover { background-color: #c82333; }
+
+    /* CSS THANH TÌM KIẾM (MỚI) */
+    .filter-bar { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+    .filter-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .filter-input, .filter-select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; outline: none; }
+    .filter-input:focus, .filter-select:focus { border-color: #17a2b8; }
+    .btn-search { background-color: #333; color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+    .btn-reset { color: #dc3545; text-decoration: none; font-weight: 500; font-size: 14px; margin-left: 5px; }
 </style>
 
 <div class="admin-wrapper">
 
     <h2>Quản lý Hóa đơn</h2>
+
+    <div class="filter-bar">
+        <form method="GET" action="" class="filter-form">
+            <input type="text" name="search" class="filter-input" placeholder="Tìm ID hoặc Tên NV..." value="<?php echo htmlspecialchars($search); ?>">
+            
+            <select name="sort_by" class="filter-select">
+                <option value="date" <?php if(isset($_GET['sort_by']) && $_GET['sort_by'] == 'date') echo 'selected'; ?>>Theo Ngày</option>
+                <option value="amount" <?php if(isset($_GET['sort_by']) && $_GET['sort_by'] == 'amount') echo 'selected'; ?>>Theo Tổng tiền</option>
+                <option value="id" <?php if(isset($_GET['sort_by']) && $_GET['sort_by'] == 'id') echo 'selected'; ?>>Theo Mã HĐ</option>
+            </select>
+
+            <select name="order_dir" class="filter-select">
+                <option value="DESC" <?php if($order_dir == 'DESC') echo 'selected'; ?>>Giảm dần (Mới/Cao nhất)</option>
+                <option value="ASC" <?php if($order_dir == 'ASC') echo 'selected'; ?>>Tăng dần (Cũ/Thấp nhất)</option>
+            </select>
+
+            <button type="submit" class="btn-search">Lọc</button>
+            <?php if(!empty($search) || isset($_GET['sort_by'])): ?>
+                <a href="order_list.php" class="btn-reset">Đặt lại</a>
+            <?php endif; ?>
+        </form>
+    </div>
 
     <?php if ($result && mysqli_num_rows($result) > 0): ?>
     <table>
@@ -69,7 +109,8 @@ $result = mysqli_query($conn, $sql);
             <?php while ($row = mysqli_fetch_assoc($result)) { ?>
             <tr>
                 <td><strong>#<?php echo $row['id']; ?></strong></td>
-                <td><?php echo date('d/m/Y H:i', strtotime($row['order_date'])); ?></td> <td><?php echo htmlspecialchars($row['full_name']); ?></td>
+                <td><?php echo date('d/m/Y H:i', strtotime($row['order_date'])); ?></td> 
+                <td><?php echo htmlspecialchars($row['full_name']); ?></td>
                 <td style="color: #28a745; font-weight: bold;"><?php echo number_format($row['total_amount']); ?> ₫</td>
                 <td style="text-align: center;">
                     <a href="order_details.php?id=<?php echo $row['id']; ?>" class="btn-view">Chi tiết</a>
@@ -82,10 +123,11 @@ $result = mysqli_query($conn, $sql);
         </tbody>
     </table>
     <?php else: ?>
-        <p style="text-align:center; color:#999; margin-top: 30px;">Chưa có hóa đơn nào.</p>
+        <p style="text-align:center; color:#999; margin-top: 30px; background: white; padding: 20px; border-radius: 8px;">Không tìm thấy hóa đơn nào.</p>
     <?php endif; ?>
 
-</div> <?php
+</div> 
+<?php
 if ($result) mysqli_free_result($result);
 disconnect_db();
 require '../includes/footer.php'; 

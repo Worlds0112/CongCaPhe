@@ -19,12 +19,12 @@ function is_working_hour($user_shift) {
     switch ($user_shift) {
         case 'sang':
             // Từ 6:00 đến 13:59
-            if ($current_hour >= 6 && $current_hour < 14) return true;
+            if ($current_hour >= 6 && $current_hour < 12) return true;
             break;
             
         case 'chieu':
             // Từ 14:00 đến 21:59
-            if ($current_hour >= 14 && $current_hour < 22) return true;
+            if ($current_hour >= 12 && $current_hour < 18) return true;
             break;
             
         case 'toi':
@@ -41,8 +41,8 @@ function is_working_hour($user_shift) {
 
 function get_shift_name($code) {
     switch ($code) {
-        case 'sang': return "Ca Sáng (6h-14h)";
-        case 'chieu': return "Ca Chiều (14h-22h)";
+        case 'sang': return "Ca Sáng (6h-12h)";
+        case 'chieu': return "Ca Chiều (14h-18h)";
         case 'toi': return "Ca Tối (18h-23h)";
         case 'full': return "Toàn thời gian";
         default: return "Chưa phân ca";

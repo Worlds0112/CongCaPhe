@@ -187,10 +187,10 @@ $isAdmin = ($_SESSION['role'] == 'admin');
                 <div class="form-group">
                     <label>Phân ca làm việc <?php echo $isAdmin ? '' : '(Chỉ Admin sửa)'; ?>:</label>
                     <select name="shift" <?php echo $isAdmin ? '' : 'disabled'; ?>>
-                        <option value="sang" <?php if($user_old['shift']=='sang') echo 'selected'; ?>>Ca Sáng</option>
-                        <option value="chieu" <?php if($user_old['shift']=='chieu') echo 'selected'; ?>>Ca Chiều</option>
-                        <option value="toi" <?php if($user_old['shift']=='toi') echo 'selected'; ?>>Ca Tối</option>
-                        <option value="full" <?php if($user_old['shift']=='full') echo 'selected'; ?>>Full time</option>
+                        <option value="sang" <?php if($user_old['shift']=='sang') echo 'selected'; ?>>Ca Sáng (06:00 - 12:00)</option>
+                        <option value="chieu" <?php if($user_old['shift']=='chieu') echo 'selected'; ?>>Ca Chiều (12:00 - 18:00)</option>
+                        <option value="toi" <?php if($user_old['shift']=='toi') echo 'selected'; ?>>Ca Tối (18:00 - 23:00)</option>
+                        <option value="full" <?php if($user_old['shift']=='full') echo 'selected'; ?>>Toàn thời gian (Full)</option>
                     </select>
                 </div>
             </div>

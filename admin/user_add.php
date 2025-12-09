@@ -116,8 +116,8 @@ require '../includes/header.php';
                 <div class="form-group">
                     <label>Phân ca làm việc:</label>
                     <select name="shift">
-                        <option value="sang">Ca Sáng (06:00 - 14:00)</option>
-                        <option value="chieu">Ca Chiều (14:00 - 22:00)</option>
+                        <option value="sang">Ca Sáng (06:00 - 12:00)</option>
+                        <option value="chieu">Ca Chiều (12:00 - 18:00)</option>
                         <option value="toi">Ca Tối (18:00 - 23:00)</option>
                         <option value="full">Toàn thời gian (Full)</option>
                     </select>
