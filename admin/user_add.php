@@ -143,5 +143,3 @@ require '../includes/header.php';
         </form>
     </div>
 </div>
-
-<?php require '../includes/footer.php'; ?>

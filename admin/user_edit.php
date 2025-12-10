@@ -5,8 +5,7 @@ if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit();
 }
-require '../includes/connect.php';
-connect_db();
+
 // ------------------------------
 
 $message = "";
@@ -214,5 +213,3 @@ $isAdmin = ($_SESSION['role'] == 'admin');
         </form>
     </div>
 </div>
-
-<?php require '../includes/footer.php'; ?>

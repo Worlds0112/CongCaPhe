@@ -2,6 +2,8 @@
 // 1. BẢO VỆ TRANG
 require '../includes/auth_admin.php'; 
 require '../includes/header.php'; 
+require '../includes/admin_sidebar.php'; 
+echo '<div class="main-with-sidebar">';
 
 // 2. LẤY ID HÓA ĐƠN TỪ URL
 $order_id = (isset($_GET['id'])) ? (int)$_GET['id'] : 0;
@@ -154,6 +156,5 @@ if ($result_details) {
 }
 mysqli_stmt_close($stmt_details);
 disconnect_db();
-
-require '../includes/footer.php'; 
+echo '</div>';
 ?>

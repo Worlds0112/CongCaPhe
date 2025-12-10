@@ -3,7 +3,7 @@
 
 if (!isset($conn)) {
     // Đảm bảo có kết nối DB nếu file này được gọi lẻ
-    require_once 'connect.php';
+    
     if (function_exists('connect_db')) $conn = connect_db();
 }
 

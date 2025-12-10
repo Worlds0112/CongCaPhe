@@ -1,7 +1,7 @@
 <?php
 session_start();
-require 'includes/connect.php';
 require 'includes/disconnect.php';
+require 'includes/connect.php';
 
 $message = "";
 $step = 1; 

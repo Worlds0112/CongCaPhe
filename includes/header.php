@@ -21,7 +21,7 @@ if (isset($_SESSION['user_id'])) {
     if (!isset($conn)) {
         $conn = mysqli_connect("localhost", "root", "", "db_quanlycafe");
         if (!$conn && file_exists(__DIR__ . '/connect.php')) {
-            require_once 'connect.php'; 
+            
             if (function_exists('connect_db')) $conn = connect_db();
         }
     }

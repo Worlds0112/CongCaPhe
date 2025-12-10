@@ -22,48 +22,73 @@ $result = mysqli_query($conn, $sql);
 ?>
 
 <style>
-    /* --- MÀU ĐẶC TRƯNG CHO TRANG LỊCH SỬ (MÀU VÀNG #ffc107) --- */
+    /* --- 1. MÀU ĐẶC TRƯNG CHO TRANG LỊCH SỬ (MÀU VÀNG #ffc107) --- */
     h2 {
         border-left-color: #ffc107;
     }
-
-    /* Nếu bạn muốn nút Tìm kiếm cũng đổi màu vàng khi bấm vào (cho đồng bộ) */
-    .filter-input:focus,
-    .filter-select:focus {
+    
+    /* Màu focus cho input/select */
+    .form-control:focus {
         border-color: #ffc107;
+        box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3);
+    }
+    
+    /* Nút Lọc (Filter) */
+    .btn-filter {
+        background: #ffc107; /* Màu vàng */
+        color: #333;
+    }
+    .btn-filter:hover {
+        background: #e0a800;
+        color: #333;
     }
 
-    /* CSS cho trạng thái chênh lệch */
+    /* --- 2. CSS cho trạng thái chênh lệch (UNIQUE) --- */
     .diff-ok {
         color: #aaa;
         font-weight: bold;
     }
 
     .diff-pos {
-        color: #28a745;
+        color: #28a745; /* Xanh lá: Thừa */
         font-weight: bold;
     }
 
     .diff-neg {
-        color: #dc3545;
+        color: #dc3545; /* Đỏ: Thiếu */
         font-weight: bold;
     }
 </style>
 
 <div class="admin-wrapper">
 
-    <h2>Lịch sử Kết Ca & Bàn Giao</h2>
+    <h2 class="title-history">Lịch sử Kết Ca & Bàn Giao</h2>
 
-    <div class="filter-bar">
-        <form method="GET" style="display: flex; align-items: center; gap: 10px;">
-            <label style="font-weight: bold;">Xem ngày:</label>
-            <input type="date" name="date" class="filter-input" value="<?php echo $filter_date; ?>">
-            <button type="submit" class="btn-filter">Xem</button>
+    <div class="filter-card">
+        <form method="GET" class="filter-row">
+            
+            <div class="filter-group">
+                <label>Xem báo cáo ngày</label>
+                <input type="date" name="date" class="form-control" value="<?php echo $filter_date; ?>">
+            </div>
+            
+            <div class="filter-group action-group" style="flex-direction: row; align-items: flex-end;">
+                <button type="submit" class="btn-filter">Xem</button>
 
-            <?php if ($filter_date): ?>
-                <a href="shift_history.php" class="btn-reset">Xóa lọc</a>
-            <?php endif; ?>
+                <?php if ($filter_date): ?>
+                    <a href="shift_history.php" class="btn-reset" title="Xóa bộ lọc">↺</a>
+                <?php endif; ?>
+            </div>
         </form>
+        
+        <?php if ($filter_date): ?>
+            <div style="font-weight:bold; font-size:14px; color:#333;">
+                Đang xem báo cáo ngày: 
+                <span style="color:#ffc107; font-size:16px;">
+                    <?php echo date('d/m/Y', strtotime($filter_date)); ?>
+                </span>
+            </div>
+        <?php endif; ?>
     </div>
 
     <?php if ($result && mysqli_num_rows($result) > 0): ?>
@@ -118,7 +143,6 @@ $result = mysqli_query($conn, $sql);
 
                         <td style="color: #d63384; font-size: 13px; max-width: 200px;">
                             <?php
-                            // Kiểm tra nếu có ghi chú kho thì hiện, không thì gạch ngang
                             echo !empty($row['inventory_notes']) ? nl2br(htmlspecialchars($row['inventory_notes'])) : '<span style="color:#ccc">-</span>';
                             ?>
                         </td>
@@ -126,15 +150,8 @@ $result = mysqli_query($conn, $sql);
                         <td style="color: #666; font-style: italic; max-width: 200px;">
                             <?php echo !empty($row['notes']) ? nl2br(htmlspecialchars($row['notes'])) : '<span style="color:#ccc">-</span>'; ?>
                         </td>
-                        <td>
-                            <?php if ($row['user_id'] == 0): ?>
-                                <span style="color:red; font-weight:bold;">🤖 HỆ THỐNG (AUTO)</span>
-                            <?php else: ?>
-                                <?php echo htmlspecialchars($row['full_name']); ?><br>
-                                <small style="color:#999"><?php echo $row['username']; ?></small>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+                        
+                        </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>

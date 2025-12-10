@@ -153,5 +153,4 @@ require '../includes/header.php';
 
 <?php
 disconnect_db(); 
-require '../includes/footer.php'; 
 ?>
