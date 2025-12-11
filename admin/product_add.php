@@ -1,156 +1,158 @@
 <?php
-// 1. BẢO VỆ TRANG
-require '../includes/auth_admin.php';
+require '../includes/auth_admin.php'; 
+require '../includes/header.php'; 
+require '../includes/admin_sidebar.php'; 
 
-$message = ""; 
+echo '<div class="main-with-sidebar">';
+echo '<div class="admin-wrapper" style="margin: 0; max-width: none;">';
 
-// 2. XỬ LÝ POST
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_product'])) {
-    
-    $name = mysqli_real_escape_string($conn, $_POST['product_name']);
-    $price = (int)$_POST['product_price'];
-    $stock = (int)$_POST['product_stock'];
+$error_msg = ""; // Biến chứa lỗi
+$success_msg = "";
+
+// Biến giữ lại giá trị cũ khi lỗi (để người dùng không phải nhập lại từ đầu)
+$old_name = ""; $old_price = ""; $old_original = ""; $old_stock = ""; $old_desc = "";
+
+if (isset($_POST['add_product'])) {
+    // 1. LẤY DỮ LIỆU VÀ CLEAN
+    $name = trim($_POST['name']);
     $category_id = (int)$_POST['category_id'];
-    
-    $image_name = "default.jpg"; 
+    $price = $_POST['price'];
+    $original_price = $_POST['original_price'];
+    $stock = $_POST['stock'];
+    $description = trim($_POST['description']);
 
-    if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] == 0) {
-        $target_dir = "uploads/";
-        if (!is_dir($target_dir)) mkdir($target_dir, 0755, true);
-        
-        $original_name = basename($_FILES["product_image"]["name"]);
-        $image_name = time() . "_" . str_replace(" ", "-", $original_name);
-        $target_file = $target_dir . $image_name;
+    // Giữ lại giá trị cũ
+    $old_name = $name; $old_price = $price; $old_original = $original_price; $old_stock = $stock; $old_desc = $description;
 
-        if (!move_uploaded_file($_FILES["product_image"]["tmp_name"], $target_file)) {
-            $message = "Lỗi upload ảnh. Dùng ảnh mặc định.";
-            $image_name = "default.jpg";
-        }
-    }
-
-    $sql = "INSERT INTO products (category_id, name, price, stock, image) VALUES (?, ?, ?, ?, ?)";
-    $stmt = mysqli_prepare($conn, $sql);
-    
-    if ($stmt) {
-        mysqli_stmt_bind_param($stmt, "isiss", $category_id, $name, $price, $stock, $image_name);
-        if (mysqli_stmt_execute($stmt)) {
-            $message = "Thêm thành công: " . $name;
-        } else {
-            $message = "Lỗi SQL: " . mysqli_stmt_error($stmt);
-        }
-        mysqli_stmt_close($stmt);
+    // 2. BẮT LỖI (VALIDATION)
+    if (empty($name)) {
+        $error_msg = "Vui lòng nhập tên sản phẩm.";
+    } elseif (!is_numeric($price) || $price <= 0) {
+        $error_msg = "Giá bán phải là số và lớn hơn 0.";
+    } elseif (!is_numeric($original_price) || $original_price < 0) {
+        $error_msg = "Giá vốn không hợp lệ (phải >= 0).";
+    } elseif (!is_numeric($stock) || $stock < 0) {
+        $error_msg = "Tồn kho phải là số và không âm.";
+    } elseif (empty($_FILES['image']['name'])) {
+        $error_msg = "Vui lòng chọn ảnh sản phẩm.";
     } else {
-        $message = "Lỗi chuẩn bị: " . mysqli_error($conn);
+        // Kiểm tra file ảnh
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+        
+        if (!in_array($ext, $allowed)) {
+            $error_msg = "Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP).";
+        } elseif ($_FILES['image']['size'] > 5000000) { // 5MB
+            $error_msg = "File ảnh quá lớn (Max 5MB).";
+        } else {
+            // 3. XỬ LÝ KHI KHÔNG CÓ LỖI
+            $target_dir = "uploads/";
+            $new_filename = uniqid() . '.' . $ext;
+            
+            if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_dir . $new_filename)) {
+                // Insert SQL
+                $name = mysqli_real_escape_string($conn, $name);
+                $desc = mysqli_real_escape_string($conn, $description);
+                
+                $sql = "INSERT INTO products (name, category_id, price, original_price, stock, image, description) 
+                        VALUES ('$name', '$category_id', '$price', '$original_price', '$stock', '$new_filename', '$desc')";
+                
+                if (mysqli_query($conn, $sql)) {
+                    // Ghi log nhập kho lần đầu
+                    $last_id = mysqli_insert_id($conn);
+                    mysqli_query($conn, "INSERT INTO inventory_history (product_id, quantity, note) VALUES ('$last_id', '$stock', 'Khởi tạo sản phẩm mới')");
+
+                    $success_msg = "Thêm sản phẩm thành công!";
+                    // Reset form
+                    $old_name = ""; $old_price = ""; $old_original = ""; $old_stock = ""; $old_desc = "";
+                } else {
+                    $error_msg = "Lỗi SQL: " . mysqli_error($conn);
+                }
+            } else {
+                $error_msg = "Lỗi khi tải ảnh lên server.";
+            }
+        }
     }
 }
-
-// 3. GỌI HEADER
-require '../includes/header.php'; 
 ?>
 
 <style>
-    /* Khung bao quanh toàn bộ (Giống trang danh sách) */
-    .admin-wrapper {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 30px 20px;
-    }
-
-    h2 { 
-        color: #333; 
-        margin-bottom: 1.5rem;
-        /* Thêm đường viền xanh lá cho đồng bộ */
-        border-left: 5px solid #28a745; 
-        padding-left: 15px;
-    }
-
-    /* Khung Form: Căn giữa và giới hạn chiều rộng */
-    .form-container {
-        background: #fff;
-        padding: 30px;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        max-width: 700px; /* Chỉ rộng tối đa 700px */
-        margin: 0 auto;   /* Căn giữa khung form */
-    }
-
-    .form-group { margin-bottom: 1.5rem; }
+    .form-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 800px; }
+    .form-group { margin-bottom: 20px; }
+    .form-label { font-weight: bold; margin-bottom: 8px; display: block; color: #555; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .btn-submit { background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     
-    .form-group label {
-        display: block; font-weight: 600; margin-bottom: 0.5rem; color: #555;
-    }
+    /* Style thông báo lỗi */
+    .alert { padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+    .alert-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     
-    .form-group input[type="text"],
-    .form-group input[type="number"],
-    .form-group input[type="file"] {
-        width: 100%; padding: 12px;
-        border: 1px solid #ddd; border-radius: 6px; font-size: 16px;
-        box-sizing: border-box;
-    }
-    
-    /* Nút bấm */
-    .btn {
-        display: inline-block; padding: 10px 20px;
-        text-decoration: none; border-radius: 6px; font-weight: bold;
-        color: white; border: none; cursor: pointer; font-size: 16px;
-        transition: background 0.2s;
-    }
-    .btn-add { background-color: #28a745; width: 100%; } /* Nút Lưu full width */
-    .btn-add:hover { background-color: #218838; }
-    
-    .btn-back { background-color: #6c757d; font-size: 14px; margin-bottom: 20px;}
-    .btn-back:hover { background-color: #5a6268; }
-
-    .message {
-        padding: 15px; border-radius: 6px; margin-bottom: 20px; font-weight: 500;
-        max-width: 700px; margin-left: auto; margin-right: auto; /* Căn giữa thông báo */
-    }
-    .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .form-row { display: flex; gap: 20px; } .col { flex: 1; }
 </style>
 
-<div class="admin-wrapper">
+<h2 class="title-product">Thêm sản phẩm mới</h2>
 
-    <h2>Thêm sản phẩm mới</h2>
-    <p><a href="product_list.php" class="btn btn-back">← Quay về danh sách</a></p>
+<?php if($error_msg): ?>
+    <div class="alert alert-danger">⚠️ <?php echo $error_msg; ?></div>
+<?php endif; ?>
+<?php if($success_msg): ?>
+    <div class="alert alert-success">✅ <?php echo $success_msg; ?></div>
+<?php endif; ?>
 
-    <?php
-    if ($message != "") {
-        $msg_class = (strpos($message, 'Lỗi') !== false) ? 'error' : 'success';
-        echo "<div class='message $msg_class'>" . htmlspecialchars($message) . "</div>";
-    }
-    ?>
+<div class="form-container">
+    <form method="POST" enctype="multipart/form-data">
+        
+        <div class="form-group">
+            <label class="form-label">Tên sản phẩm (*)</label>
+            <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($old_name); ?>" required>
+        </div>
 
-    <div class="form-container">
-        <form action="" method="POST" enctype="multipart/form-data">
-            <div class="form-group">
-                <label>Tên sản phẩm:</label>
-                <input type="text" name="product_name" required placeholder="Ví dụ: Cà phê sữa đá">
-            </div>
-            <div class="form-group">
-                <label>Giá bán (VNĐ):</label>
-                <input type="number" name="product_price" required placeholder="Ví dụ: 35000">
-            </div>
-            <div class="form-group">
-                <label>Số lượng tồn kho:</label>
-                <input type="number" name="product_stock" required placeholder="Ví dụ: 100">
-            </div>
-            <div class="form-group">
-                <label>Danh mục (ID):</label>
-                <input type="number" name="category_id" required placeholder="Nhập ID danh mục (vd: 1, 2, 3)">
-            </div>
-            <div class="form-group">
-                <label>Ảnh sản phẩm:</label>
-                <input type="file" name="product_image" accept="image/*">
-            </div>
-            <div class="form-group">
-                <button type="submit" name="save_product" class="btn btn-add">Lưu sản phẩm</button>
-            </div>
-        </form>
-    </div>
+        <div class="form-group">
+            <label class="form-label">Danh mục (*)</label>
+            <select name="category_id" class="form-control">
+                <?php
+                $cat_res = mysqli_query($conn, "SELECT * FROM categories");
+                while ($cat = mysqli_fetch_assoc($cat_res)) {
+                    echo "<option value='{$cat['id']}'>{$cat['name']}</option>";
+                }
+                ?>
+            </select>
+        </div>
 
+        <div class="form-row">
+            <div class="col form-group">
+                <label class="form-label">Giá bán (*)</label>
+                <input type="number" name="price" class="form-control" value="<?php echo $old_price; ?>" required min="0">
+            </div>
+            <div class="col form-group">
+                <label class="form-label">Giá vốn (*)</label>
+                <input type="number" name="original_price" class="form-control" value="<?php echo $old_original; ?>" required min="0">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Số lượng nhập ban đầu (*)</label>
+            <input type="number" name="stock" class="form-control" value="<?php echo $old_stock; ?>" required min="0">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Hình ảnh (*)</label>
+            <input type="file" name="image" class="form-control" accept="image/*" required>
+            <small style="color:#888">Chấp nhận: jpg, png, webp (Max 5MB)</small>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Mô tả</label>
+            <textarea name="description" class="form-control" rows="3"><?php echo htmlspecialchars($old_desc); ?></textarea>
+        </div>
+
+        <button type="submit" name="add_product" class="btn-submit">Thêm sản phẩm</button>
+        <a href="product_list.php" style="margin-left: 10px; text-decoration: none; color: #666;">Hủy bỏ</a>
+
+    </form>
 </div>
 
-<?php
-disconnect_db(); 
+<?php 
+echo '</div></div>'; 
 ?>

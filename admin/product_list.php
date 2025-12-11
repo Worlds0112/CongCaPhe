@@ -257,5 +257,4 @@ $result = mysqli_query($conn, $sql);
 if ($result) mysqli_free_result($result);
 disconnect_db();
 echo '</div>'; // Đóng main-with-sidebar
-require '../includes/footer.php'; 
 ?>

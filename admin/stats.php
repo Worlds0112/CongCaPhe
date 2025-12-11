@@ -109,6 +109,8 @@ for ($m = 1; $m <= 12; $m++) {
 
 <h2 style="border-left: 5px solid #28a745; padding-left: 15px; margin-bottom: 30px;">Trung Tâm Thống Kê</h2>
 
+
+
 <div class="stats-section">
     <div class="section-title"><span style="background: #007bff;"></span> ĐANG HOẠT ĐỘNG: <?php echo $shift_name; ?></div>
     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
@@ -153,6 +155,41 @@ for ($m = 1; $m <= 12; $m++) {
 
 <div class="stats-section">
     <div class="section-title"><span style="background: #6f42c1;"></span> THÁNG <?php echo date('m/Y'); ?></div>
+
+    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+        
+        <form action="export_excel.php" method="POST" style="display:flex; gap:10px; align-items:center;">
+            <strong style="color: #6f42c1;">📊 Báo cáo THÁNG:</strong>
+            <select name="month" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <?php 
+                for($m=1; $m<=12; $m++){ 
+                    $sel = ($m == date('m')) ? 'selected' : ''; 
+                    echo "<option value='$m' $sel>Tháng $m</option>"; 
+                } 
+                ?>
+            </select>
+            <select name="year" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <?php 
+                $cur_year = date('Y'); 
+                for($y=$cur_year; $y>=$cur_year-2; $y--){ 
+                    echo "<option value='$y'>$y</option>"; 
+                } 
+                ?>
+            </select>
+            <button type="submit" name="btn_export_month" style="background: #217346; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                📥 Tải Excel
+            </button>
+        </form>
+
+        <div style="width: 1px; height: 30px; background: #ddd;"></div> <form action="export_excel.php" method="POST" style="display:flex; gap:10px; align-items:center;">
+            <strong style="color: #007bff;">📅 Báo cáo NGÀY:</strong>
+            <input type="date" name="report_date" value="<?php echo date('Y-m-d'); ?>" style="padding: 7px; border: 1px solid #ddd; border-radius: 4px;">
+            <button type="submit" name="btn_export_day" style="background: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                📥 Tải Excel
+            </button>
+        </form>
+
+    </div>
     <div class="stats-grid">
         <a href="order_list.php?month=<?php echo $this_month; ?>" class="stat-card c-month">
             <div class="stat-label">Doanh thu Tháng</div>

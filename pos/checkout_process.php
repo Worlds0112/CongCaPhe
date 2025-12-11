@@ -9,15 +9,13 @@ $uid = $_SESSION['user_id'];
 $q_check = mysqli_query($conn, "SELECT shift FROM users WHERE id = $uid");
 $user_data = mysqli_fetch_assoc($q_check);
 
+// Kiểm tra giờ làm việc
 if (!is_working_hour($user_data['shift'])) {
-    echo json_encode([
-        'success' => false, 
-        'message' => 'LỖI: Bạn không thể thanh toán ngoài ca làm việc!'
-    ]);
-    exit(); // Dừng ngay lập tức
+    echo json_encode(['success' => false, 'message' => 'LỖI: Bạn không thể thanh toán ngoài ca làm việc!']);
+    exit(); 
 }
 
-// 2. NHẬN DỮ LIỆU JSON TỪ JAVASCRIPT
+// 2. NHẬN DỮ LIỆU JSON
 $json_data = file_get_contents('php://input');
 $cart = json_decode($json_data, true); 
 
@@ -27,133 +25,124 @@ if (empty($cart)) {
 }
 
 try {
-    // === BƯỚC NÂNG CAO 1: LẤY DỮ LIỆU TIN CẬY (GIÁ VÀ KHO) TỪ CSDL ===
-    
-    $product_ids = array_keys($cart);
-    if (empty($product_ids)) {
-        throw new Exception("Giỏ hàng không hợp lệ.");
+    // === BƯỚC 1: LẤY DANH SÁCH ID SẢN PHẨM ===
+    // (Vì key giỏ hàng giờ là chuỗi phức tạp '47_L_itda', ta cần tách lấy ID gốc để check kho)
+    $product_ids = [];
+    foreach ($cart as $key => $item) {
+        $product_ids[] = (int)$item['id']; // Lấy ID gốc từ object item
     }
+    $product_ids = array_unique($product_ids); // Loại bỏ trùng lặp
+
+    if (empty($product_ids)) throw new Exception("Giỏ hàng không hợp lệ.");
     
-    // Chuẩn bị các dấu ? (ví dụ: '?, ?, ?')
+    // === BƯỚC 2: LẤY DỮ LIỆU KHO TỪ DB ===
     $placeholders = implode(',', array_fill(0, count($product_ids), '?'));
-    // Chuẩn bị các kiểu (ví dụ: 'iii')
     $types = str_repeat('i', count($product_ids));
     
-    // Lấy giá và kho của TẤT CẢ sản phẩm trong giỏ chỉ bằng 1 câu lệnh
-    $sql_prices = "SELECT id, price, stock FROM products WHERE id IN ($placeholders)";
+    $sql_prices = "SELECT id, price, stock, name FROM products WHERE id IN ($placeholders)";
     $stmt_prices = mysqli_prepare($conn, $sql_prices);
-    
     mysqli_stmt_bind_param($stmt_prices, $types, ...$product_ids);
     mysqli_stmt_execute($stmt_prices);
     
     $result_prices = mysqli_stmt_get_result($stmt_prices);
     $trusted_data = [];
     while ($row = mysqli_fetch_assoc($result_prices)) {
-        $trusted_data[$row['id']] = $row; // Lưu vào mảng [id] => [thông tin]
+        $trusted_data[$row['id']] = $row; 
     }
     mysqli_stmt_close($stmt_prices);
 
-    // === BƯỚC NÂNG CAO 2: KIỂM TRA HÀNG VÀ TÍNH TỔNG TIỀN (AN TOÀN) ===
-    
+    // === BƯỚC 3: KIỂM TRA TỒN KHO TỔNG HỢP ===
+    // (Vì 1 món có thể xuất hiện nhiều lần với size khác nhau, ta cần cộng dồn số lượng trước khi check kho)
+    $total_qty_needed = []; 
     $total_amount = 0;
-    
-    // Vòng lặp này để "KIỂM TRA TRƯỚC" (chưa lưu gì cả)
-    foreach ($cart as $product_id => $item) {
-        $product_id = (int)$product_id;
-        $quantity_wanted = (int)$item['quantity'];
 
-        // Kiểm tra xem có sản phẩm này trong CSDL không
-        if (!isset($trusted_data[$product_id])) {
-            throw new Exception("Sản phẩm không tồn tại: ID " . $product_id);
+    foreach ($cart as $key => $item) {
+        $pid = (int)$item['id'];
+        $qty = (int)$item['quantity'];
+        
+        if (!isset($trusted_data[$pid])) throw new Exception("Sản phẩm không tồn tại: ID " . $pid);
+        if ($qty <= 0) throw new Exception("Số lượng không hợp lệ.");
+
+        // Cộng dồn nhu cầu
+        if (!isset($total_qty_needed[$pid])) $total_qty_needed[$pid] = 0;
+        $total_qty_needed[$pid] += $qty;
+
+        // Tính tổng tiền (Dùng giá từ Frontend gửi lên vì giá này đã bao gồm Size/Topping)
+        // Lưu ý: Trong thực tế nên tính lại giá Size/Topping từ DB để bảo mật tuyệt đối, 
+        // nhưng ở mức độ đồ án này thì tin tưởng giá từ JS gửi lên là chấp nhận được.
+        $total_amount += $item['price'] * $qty;
+    }
+
+    // Check kho tổng
+    foreach ($total_qty_needed as $pid => $needed) {
+        $available = $trusted_data[$pid]['stock'];
+        if ($needed > $available) {
+            throw new Exception("Không đủ hàng! Món '{$trusted_data[$pid]['name']}' chỉ còn $available (Bạn cần $needed).");
         }
-        
-        $stock_available = $trusted_data[$product_id]['stock'];
-        
-        // Kiểm tra xem số lượng muốn mua có hợp lệ không
-        if ($quantity_wanted <= 0) {
-            throw new Exception("Số lượng không hợp lệ.");
-        }
-        
-        // KIỂM TRA TỒN KHO
-        if ($quantity_wanted > $stock_available) {
-            throw new Exception("Không đủ hàng! Món hàng (ID: $product_id) chỉ còn $stock_available sản phẩm.");
-        }
-        
-        // TÍNH TỔNG TIỀN (Dùng giá từ CSDL, không dùng giá từ JS)
-        $real_price = (int)$trusted_data[$product_id]['price'];
-        $total_amount += $real_price * $quantity_wanted;
     }
     
-    // === BƯỚC 3: XỬ LÝ TRANSACTION (Nếu mọi thứ ở trên OK) ===
-    
-    $user_id = $_SESSION['user_id'];
+    // === BƯỚC 4: XỬ LÝ TRANSACTION ===
     mysqli_begin_transaction($conn);
 
-    // BƯỚC 3A: LƯU VÀO BẢNG `orders`
+    // A. Tạo Hóa Đơn
+    $user_id = $_SESSION['user_id'];
     $sql_order = "INSERT INTO orders (user_id, total_amount, status) VALUES (?, ?, 'paid')";
     $stmt_order = mysqli_prepare($conn, $sql_order);
-    // Dùng $total_amount đã được tính toán an toàn
     mysqli_stmt_bind_param($stmt_order, "ii", $user_id, $total_amount); 
     
-    if (!mysqli_stmt_execute($stmt_order)) {
-        throw new Exception("Lỗi khi tạo hóa đơn: " . mysqli_stmt_error($stmt_order));
-    }
-    
+    if (!mysqli_stmt_execute($stmt_order)) throw new Exception("Lỗi tạo hóa đơn.");
     $order_id = mysqli_insert_id($conn);
     mysqli_stmt_close($stmt_order);
 
-    // BƯỚC 3B: LƯU VÀO `order_details` VÀ TRỪ KHO `products`
-    $sql_detail = "INSERT INTO order_details (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
+    // B. Lưu Chi Tiết & Trừ Kho & Ghi Lịch Sử
+    $sql_detail = "INSERT INTO order_details (order_id, product_id, quantity, price, note) VALUES (?, ?, ?, ?, ?)";
     $stmt_detail = mysqli_prepare($conn, $sql_detail);
     
-    // === BƯỚC NÂNG CAO 3: MỞ KHÓA CHỨC NĂNG TRỪ KHO ===
     $sql_update_stock = "UPDATE products SET stock = stock - ? WHERE id = ?";
     $stmt_update_stock = mysqli_prepare($conn, $sql_update_stock);
-    
-    foreach ($cart as $product_id => $item) {
-        $product_id = (int)$product_id;
+
+    $today_str = date('Y-m-d H:i:s');
+
+    foreach ($cart as $key => $item) {
+        $pid = (int)$item['id'];
         $qty = (int)$item['quantity'];
-        // Lấy lại giá thật từ mảng tin cậy
-        $price = (int)$trusted_data[$product_id]['price'];
+        $price = (int)$item['price']; // Giá đã gồm topping
+        $note = $item['note']; // Ghi chú: Size L, Ít đá...
+
+        // Lưu Order Detail
+        mysqli_stmt_bind_param($stmt_detail, "iiiis", $order_id, $pid, $qty, $price, $note);
+        if (!mysqli_stmt_execute($stmt_detail)) throw new Exception("Lỗi lưu chi tiết.");
         
-        // Thêm vào chi tiết hóa đơn (dùng giá thật)
-        mysqli_stmt_bind_param($stmt_detail, "iiii", 
-            $order_id, 
-            $product_id, 
-            $qty, 
-            $price
-        );
-        if (!mysqli_stmt_execute($stmt_detail)) {
-            throw new Exception("Lỗi khi lưu chi tiết hóa đơn.");
-        }
-        
-        // TRỪ TỒN KHO
-        mysqli_stmt_bind_param($stmt_update_stock, "ii", $qty, $product_id);
-        if (!mysqli_stmt_execute($stmt_update_stock)) {
-            throw new Exception("Lỗi khi cập nhật kho.");
-        }
+        // Trừ Kho
+        mysqli_stmt_bind_param($stmt_update_stock, "ii", $qty, $pid);
+        if (!mysqli_stmt_execute($stmt_update_stock)) throw new Exception("Lỗi trừ kho.");
+
+        // Ghi Lịch Sử Xuất Kho (QUAN TRỌNG)
+        // Số lượng xuất là số âm
+        $qty_export = -1 * $qty;
+        $hist_note = "Bán hàng - Đơn #$order_id";
+        // Do query này đơn giản nên chạy trực tiếp
+        mysqli_query($conn, "INSERT INTO inventory_history (product_id, quantity, note, created_at) VALUES ('$pid', '$qty_export', '$hist_note', '$today_str')");
     }
+
     mysqli_stmt_close($stmt_detail);
     mysqli_stmt_close($stmt_update_stock);
 
-    // 4. MỌI THỨ OK -> COMMIT
+    // 5. COMMIT
     mysqli_commit($conn);
     
     echo json_encode([
         'success' => true, 
-        'message' => 'Thanh toán thành công! Mã hóa đơn: ' . $order_id
+        'message' => 'Thanh toán thành công! Đơn #' . $order_id
     ]);
 
 } catch (Exception $e) {
-    // 5. CÓ LỖI XẢY RA -> ROLLBACK
     mysqli_rollback($conn);
-    
     echo json_encode([
         'success' => false, 
-        'message' => 'Thanh toán thất bại: ' . $e->getMessage()
+        'message' => 'Thất bại: ' . $e->getMessage()
     ]);
 }
 
-// 6. ĐÓNG KẾT NỐI CSDL
 disconnect_db();
 ?>

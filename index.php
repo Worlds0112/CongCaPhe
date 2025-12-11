@@ -151,8 +151,7 @@ require 'includes/header.php';
     <p>Lan tỏa hương vị Việt - Hệ thống quản lý chuyên nghiệp</p>
     
     <?php if (isset($_SESSION['user_id'])): ?>
-        <?php $link = ($_SESSION['role'] == 'admin') ? 'pos/pos.php' : 'pos/pos.php'; ?>
-        <a href="<?php echo $link; ?>" class="cta-button">Vào Trang Bán Hàng</a>
+        <a href="pos/pos.php" class="cta-button">Vào Trang Bán Hàng</a>
     <?php else: ?>
         <a href="login.php" class="cta-button">Đăng Nhập Ngay</a>
     <?php endif; ?>

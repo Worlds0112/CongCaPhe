@@ -244,5 +244,4 @@ $result = mysqli_query($conn, $sql);
 
 <?php
 echo '</div>'; // Đóng main-with-sidebar
-require '../includes/footer.php'; 
 ?>

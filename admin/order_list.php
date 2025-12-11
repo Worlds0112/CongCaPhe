@@ -266,5 +266,3 @@ echo '</div>'; // Đóng main-with-sidebar
         });
     }
 </script>
-
-<?php require '../includes/footer.php'; ?>

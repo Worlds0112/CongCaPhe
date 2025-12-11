@@ -8,9 +8,9 @@ echo '<div class="admin-wrapper" style="margin: 0; max-width: none;">';
 
 // Biến lưu trạng thái thông báo
 $toast_message = "";
-$toast_type = ""; // 'success' hoặc 'error'
+$toast_type = ""; 
 
-// 1. LẤY ID SẢN PHẨM
+// 1. LẤY ID SẢN PHẨM & KIỂM TRA TỒN TẠI
 if (isset($_GET['id'])) {
     $id = (int)$_GET['id'];
     $sql = "SELECT * FROM products WHERE id = $id";
@@ -18,8 +18,7 @@ if (isset($_GET['id'])) {
     $product = mysqli_fetch_assoc($result);
 
     if (!$product) {
-        // Nếu không thấy, chuyển hướng về list kèm thông báo lỗi
-        header("Location: product_list.php?error=Sản phẩm không tồn tại");
+        echo "<script>alert('Sản phẩm không tồn tại!'); window.location.href='product_list.php';</script>";
         exit();
     }
 } else {
@@ -29,55 +28,91 @@ if (isset($_GET['id'])) {
 
 // 2. XỬ LÝ POST
 if (isset($_POST['update_product'])) {
-    $name = mysqli_real_escape_string($conn, $_POST['name']);
+    // Lấy dữ liệu & Clean
+    $name = trim($_POST['name']);
     $category_id = (int)$_POST['category_id'];
-    $price = (float)$_POST['price'];
-    $original_price = (float)$_POST['original_price']; 
-    $stock_new = (int)$_POST['stock']; 
-    $description = isset($_POST['description']) ? mysqli_real_escape_string($conn, $_POST['description']) : '';
+    $price = $_POST['price'];
+    $original_price = $_POST['original_price']; 
+    $stock_new = $_POST['stock']; 
+    $description = trim($_POST['description']);
 
-    // GHI LỊCH SỬ KHO
-    $stock_old = (int)$product['stock'];
-    $diff = $stock_new - $stock_old;
-
-    if ($diff > 0) {
-        $note = "Cập nhật thủ công (Sửa sản phẩm)";
-        $sql_hist = "INSERT INTO inventory_history (product_id, quantity, note) VALUES ('$id', '$diff', '$note')";
-        mysqli_query($conn, $sql_hist);
-    }
-
-    // XỬ LÝ ẢNH
-    $image_update_query = "";
-    if (!empty($_FILES['image']['name'])) {
-        $target_dir = "uploads/";
-        $file_extension = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
-        $new_filename = uniqid() . '.' . $file_extension;
-        $target_file = $target_dir . $new_filename;
-        
-        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
-            $image_update_query = ", image = '$new_filename'";
-        }
-    }
-
-    // UPDATE
-    $sql_update = "UPDATE products SET name='$name', category_id='$category_id', price='$price', original_price='$original_price', stock='$stock_new', description='$description' $image_update_query WHERE id=$id";
-
-    if (mysqli_query($conn, $sql_update)) {
-        // Cập nhật lại biến $product để form hiển thị dữ liệu mới nhất
-        $product['name'] = $name;
-        $product['category_id'] = $category_id;
-        $product['price'] = $price;
-        $product['original_price'] = $original_price;
-        $product['stock'] = $stock_new;
-        $product['description'] = $description;
-        if($image_update_query) $product['image'] = $new_filename;
-
-        // Set thông báo thành công
-        $toast_message = "Cập nhật sản phẩm thành công!";
-        $toast_type = "success";
-    } else {
-        $toast_message = "Lỗi cập nhật: " . mysqli_error($conn);
+    // --- VALIDATION ---
+    if (empty($name)) {
+        $toast_message = "Tên sản phẩm không được để trống.";
         $toast_type = "error";
+    } elseif (!is_numeric($price) || $price <= 0) {
+        $toast_message = "Giá bán không hợp lệ.";
+        $toast_type = "error";
+    } elseif (!is_numeric($stock_new) || $stock_new < 0) {
+        $toast_message = "Tồn kho không được âm.";
+        $toast_type = "error";
+    } else {
+        // --- NẾU KHÔNG CÓ LỖI NHẬP LIỆU ---
+        
+        // 1. Xử lý ảnh (Chỉ khi có upload mới)
+        $image_update_query = "";
+        $upload_ok = true;
+
+        if (!empty($_FILES['image']['name'])) {
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+            
+            if (!in_array($ext, $allowed)) {
+                $toast_message = "Chỉ chấp nhận file ảnh (JPG, PNG...).";
+                $toast_type = "error";
+                $upload_ok = false;
+            } elseif ($_FILES['image']['size'] > 5000000) {
+                $toast_message = "File ảnh quá lớn (>5MB).";
+                $toast_type = "error";
+                $upload_ok = false;
+            } else {
+                $target_dir = "uploads/";
+                $new_filename = uniqid() . '.' . $ext;
+                if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_dir . $new_filename)) {
+                    $image_update_query = ", image = '$new_filename'";
+                } else {
+                    $toast_message = "Lỗi khi lưu file ảnh.";
+                    $toast_type = "error";
+                    $upload_ok = false;
+                }
+            }
+        }
+
+        // 2. Update Database (Nếu ảnh OK hoặc không đổi ảnh)
+        if ($upload_ok) {
+            $name = mysqli_real_escape_string($conn, $name);
+            $description = mysqli_real_escape_string($conn, $description);
+
+            // GHI LỊCH SỬ KHO (Nếu số lượng thay đổi)
+            $stock_old = (int)$product['stock'];
+            $diff = (int)$stock_new - $stock_old;
+
+            if ($diff != 0) {
+                $note = "Cập nhật thủ công (Sửa SP)";
+                // Nếu $diff > 0 là nhập, < 0 là xuất (hoặc điều chỉnh giảm)
+                $sql_hist = "INSERT INTO inventory_history (product_id, quantity, note) VALUES ('$id', '$diff', '$note')";
+                mysqli_query($conn, $sql_hist);
+            }
+
+            $sql_update = "UPDATE products SET name='$name', category_id='$category_id', price='$price', original_price='$original_price', stock='$stock_new', description='$description' $image_update_query WHERE id=$id";
+
+            if (mysqli_query($conn, $sql_update)) {
+                $toast_message = "Cập nhật thành công!";
+                $toast_type = "success";
+                
+                // Refresh dữ liệu biến $product để form hiển thị cái mới nhất
+                $product['name'] = $name;
+                $product['category_id'] = $category_id;
+                $product['price'] = $price;
+                $product['original_price'] = $original_price;
+                $product['stock'] = $stock_new;
+                $product['description'] = $description;
+                if(!empty($image_update_query)) $product['image'] = $new_filename;
+            } else {
+                $toast_message = "Lỗi SQL: " . mysqli_error($conn);
+                $toast_type = "error";
+            }
+        }
     }
 }
 ?>
@@ -95,16 +130,11 @@ if (isset($_POST['update_product'])) {
     .current-img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px; }
 
     /* TOAST NOTIFICATION STYLES */
-    #toast-container {
-        position: fixed; bottom: 30px; right: 30px; z-index: 9999;
-        display: flex; flex-direction: column; gap: 10px;
-    }
+    #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
     .toast {
         background: #333; color: white; padding: 12px 25px; border-radius: 8px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500;
-        display: flex; align-items: center; gap: 10px;
-        opacity: 0; transform: translateY(20px); transition: all 0.4s ease;
-        border-left: 5px solid transparent;
+        display: flex; align-items: center; gap: 10px; opacity: 0; transform: translateY(20px); transition: all 0.4s ease; border-left: 5px solid transparent;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.success { background: white; color: #333; border-left-color: #28a745; }
@@ -137,25 +167,25 @@ if (isset($_POST['update_product'])) {
         <div class="form-row">
             <div class="col form-group">
                 <label class="form-label">Giá bán</label>
-                <input type="number" name="price" class="form-control" value="<?php echo $product['price']; ?>" required>
+                <input type="number" name="price" class="form-control" value="<?php echo $product['price']; ?>" required min="0">
             </div>
             <div class="col form-group">
                 <label class="form-label">Giá vốn</label>
-                <input type="number" name="original_price" class="form-control" value="<?php echo isset($product['original_price']) ? $product['original_price'] : 0; ?>">
+                <input type="number" name="original_price" class="form-control" value="<?php echo isset($product['original_price']) ? $product['original_price'] : 0; ?>" min="0">
             </div>
         </div>
 
         <div class="form-row">
             <div class="col form-group">
                 <label class="form-label">Tồn kho</label>
-                <input type="number" name="stock" class="form-control" value="<?php echo $product['stock']; ?>" required>
-                <small style="color: #d63384;">* Tăng số lượng sẽ tự động tính là nhập kho.</small>
+                <input type="number" name="stock" class="form-control" value="<?php echo $product['stock']; ?>" required min="0">
+                <small style="color: #d63384;">* Thay đổi số lượng tại đây sẽ được ghi vào lịch sử kho.</small>
             </div>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Hình ảnh</label>
-            <input type="file" name="image" class="form-control">
+            <label class="form-label">Hình ảnh (Chỉ chọn nếu muốn thay đổi)</label>
+            <input type="file" name="image" class="form-control" accept="image/*">
             <?php if (!empty($product['image'])): ?>
                 <img src="uploads/<?php echo $product['image']; ?>" class="current-img" alt="Img">
             <?php endif; ?>
@@ -187,24 +217,18 @@ if (isset($_POST['update_product'])) {
         toast.innerHTML = `<span class="toast-icon">${icon}</span> <span>${message}</span>`;
         
         container.appendChild(toast);
-
-        // Animation In
         setTimeout(() => toast.classList.add('show'), 10);
-
-        // Auto Hide
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 400);
         }, 3000);
     }
 
-    // Kích hoạt Toast nếu PHP có trả về message
     <?php if (!empty($toast_message)): ?>
         showToast("<?php echo $toast_message; ?>", "<?php echo $toast_type; ?>");
     <?php endif; ?>
 </script>
 
 <?php 
-echo '</div>'; 
-echo '</div>'; 
+echo '</div></div>'; 
 ?>
