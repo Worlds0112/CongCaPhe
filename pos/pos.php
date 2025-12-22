@@ -83,7 +83,9 @@ if (mysqli_num_rows($result) > 0) {
                                 ? "showToast('⛔ Món này đang tạm ngưng!', 'error')"
                                 : "openOptionModal({$prod['id']}, '" . htmlspecialchars(addslashes($prod['name'])) . "', {$prod['price']}, '../admin/uploads/" . htmlspecialchars($prod['image']) . "')";
                             ?>
-                            <div class="<?php echo $card_class; ?>" onclick="<?php echo $click_action; ?>">
+                            <div class="<?php echo $card_class; ?>" data-id="<?php echo $prod['id']; ?>"
+                                data-name="<?php echo htmlspecialchars($prod['name']); ?>"
+                                data-stock="<?php echo $prod['stock']; ?>" onclick="<?php echo $click_action; ?>">
                                 <?php if ($is_locked): ?>
                                     <div class="locked-overlay">TẠM NGƯNG</div><?php endif; ?>
                                 <img src="../admin/uploads/<?php echo htmlspecialchars($prod['image']); ?>" class="product-img"
@@ -255,6 +257,26 @@ if (mysqli_num_rows($result) > 0) {
 
     // --- THÊM VÀO GIỎ ---
     function confirmAddToCart(isBuyNow) {
+        // Kiểm tra tồn kho trước khi thêm
+        let productCard = document.querySelector(`[data-id="${currentProd.id}"]`);
+        let availableStock = parseInt(productCard.getAttribute('data-stock'));
+        
+        // Tính số lượng đã có trong giỏ
+        let qtyInCart = 0;
+        for (let key in cart) {
+            if (cart[key].id == currentProd.id) {
+                qtyInCart += cart[key].quantity;
+            }
+        }
+        
+        // Số lượng sau khi thêm món này
+        let totalAfterAdd = qtyInCart + 1;
+        
+        if (totalAfterAdd > availableStock) {
+            showToast(`⚠️ Chỉ còn ${availableStock} sản phẩm!\nBạn đã có ${qtyInCart} trong giỏ.`, 'error');
+            return false;
+        }
+        
         let size = document.querySelector('input[name="opt_size"]:checked').value;
         let ice = document.querySelector('input[name="opt_ice"]:checked').value;
         let toppingArr = [];
