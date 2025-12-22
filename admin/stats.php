@@ -330,6 +330,20 @@ for ($m = 1; $m <= 12; $m++) {
             </button>
         </form>
 
+        <div style="width: 1px; height: 30px; background: #ddd;"></div>
+        <form action="export_excel.php" method="POST" style="display:flex; gap:10px; align-items:center;">
+            <strong style="color: #dc3545;">📆 Khoảng ngày:</strong>
+            <input type="date" name="date_from" value="<?php echo date('Y-m-01'); ?>"
+                style="padding: 7px; border: 1px solid #ddd; border-radius: 4px;" title="Từ ngày">
+            <span>→</span>
+            <input type="date" name="date_to" value="<?php echo date('Y-m-d'); ?>"
+                style="padding: 7px; border: 1px solid #ddd; border-radius: 4px;" title="Đến ngày">
+            <button type="submit" name="btn_export_range"
+                style="background: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                📥 Tải Excel
+            </button>
+        </form>
+
     </div>
     <div class="stats-grid">
         <a href="order_list.php?month=<?php echo $this_month; ?>" class="stat-card c-month">

@@ -188,4 +188,81 @@ if (isset($_POST['btn_export_day'])) {
     <?php
     exit();
 }
+
+// =================================================================
+// 3. XUẤT BÁO CÁO THEO KHOẢNG NGÀY (MỚI THÊM)
+// =================================================================
+if (isset($_POST['btn_export_range'])) {
+    $date_from = $_POST['date_from'];
+    $date_to = $_POST['date_to'];
+    $filename = "Bao_Cao_" . date('d_m_Y', strtotime($date_from)) . "_den_" . date('d_m_Y', strtotime($date_to)) . ".xls";
+
+    header("Content-Type: application/vnd.ms-excel; charset=utf-8");
+    header("Content-Disposition: attachment; filename=\"$filename\"");
+    header("Pragma: no-cache");
+    header("Expires: 0");
+    echo "\xEF\xBB\xBF";
+    ?>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th colspan="5"
+                    style="background-color:#dc3545; color:white; font-size:18px; height:40px; text-align:center;">
+                    BÁO CÁO DOANH THU TỪ <?php echo date('d/m/Y', strtotime($date_from)); ?> ĐẾN
+                    <?php echo date('d/m/Y', strtotime($date_to)); ?>
+                </th>
+            </tr>
+            <tr style="background-color:#f0f0f0; text-align:center;">
+                <th>Ngày</th>
+                <th>Số đơn</th>
+                <th>Số ly bán</th>
+                <th>Doanh Thu</th>
+                <th>Lợi Nhuận</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+            $t_rev = 0;
+            $t_prof = 0;
+            $t_ord = 0;
+            $t_qty = 0;
+
+            $current_date = strtotime($date_from);
+            $end_date = strtotime($date_to);
+
+            while ($current_date <= $end_date) {
+                $day = date('Y-m-d', $current_date);
+                $sql = "SELECT COUNT(DISTINCT o.id) as c, SUM(o.total_amount) as r, SUM(od.quantity) as q, SUM((od.price - p.cost_price)*od.quantity) as p 
+                        FROM orders o LEFT JOIN order_details od ON o.id=od.order_id LEFT JOIN products p ON od.product_id=p.id WHERE DATE(o.order_date)='$day'";
+                $row = mysqli_fetch_assoc(mysqli_query($conn, $sql));
+
+                if ($row['c'] > 0) {
+                    echo "<tr>
+                        <td style='text-align:center;'>" . date('d/m/Y', strtotime($day)) . "</td>
+                        <td style='text-align:center;'>{$row['c']}</td>
+                        <td style='text-align:center;'>{$row['q']}</td>
+                        <td style='text-align:right;'>" . number_format($row['r']) . "</td>
+                        <td style='text-align:right;'>" . number_format($row['p']) . "</td>
+                    </tr>";
+                    $t_rev += $row['r'];
+                    $t_prof += $row['p'];
+                    $t_ord += $row['c'];
+                    $t_qty += $row['q'];
+                }
+                $current_date = strtotime('+1 day', $current_date);
+            }
+            ?>
+            <tr style="background-color:#ffffcc; font-weight:bold;">
+                <td style="text-align:right;">TỔNG CỘNG:</td>
+                <td style="text-align:center;"><?php echo $t_ord; ?></td>
+                <td style="text-align:center;"><?php echo $t_qty; ?></td>
+                <td style="text-align:right;"><?php echo number_format($t_rev); ?></td>
+                <td style="text-align:right;"><?php echo number_format($t_prof); ?></td>
+            </tr>
+        </tbody>
+    </table>
+    <?php
+    exit();
+}
 ?>
