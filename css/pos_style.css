@@ -123,6 +123,25 @@ main.content {
 .btn-sm-qty { width: 30px; height: 30px; border: none; background: #ddd; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .btn-sm-qty:hover { background: #ccc; }
 .qty-display { width: 30px; text-align: center; font-weight: bold; font-size: 14px; }
+.qty-input { 
+    width: 50px; 
+    height: 30px; 
+    text-align: center; 
+    border: none; 
+    background: #fff; 
+    font-weight: bold; 
+    font-size: 14px;
+    outline: none;
+    -moz-appearance: textfield; /* Ẩn mũi tên Firefox */
+}
+.qty-input::-webkit-inner-spin-button,
+.qty-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0; /* Ẩn mũi tên Chrome/Safari */
+}
+.qty-input:focus {
+    background: #fff9e6;
+}
 .btn-del-item { color: #dc3545; background: none; border: none; font-size: 12px; cursor: pointer; text-decoration: underline; margin-top: 5px; }
 
 /* 9. MODAL XÁC NHẬN NHỎ */
