@@ -1,15 +1,15 @@
 <?php
-require '../includes/auth_pos.php';
-require '../includes/header.php';
+require '../includes/auth_pos.php'; 
+require '../includes/header.php'; 
 require '../includes/time_check.php';
 require '../includes/auto_shift_check.php';
 
 // --- 1. LẤY THÔNG TIN & QUYỀN ---
 $uid = $_SESSION['user_id'];
-$role = $_SESSION['role'];
+$role = $_SESSION['role']; 
 $q_user = mysqli_query($conn, "SELECT shift FROM users WHERE id = $uid");
 $r_user = mysqli_fetch_assoc($q_user);
-$my_shift = $r_user['shift'];
+$my_shift = $r_user['shift']; 
 
 date_default_timezone_set('Asia/Ho_Chi_Minh');
 $current_hour = date('H');
@@ -17,12 +17,8 @@ $can_sell = is_working_hour($my_shift);
 $lock_reason = "Ngoài ca làm việc!";
 
 if ($current_hour >= 23 || $current_hour < 6) {
-    if ($role == 'admin' || $my_shift == 'full') {
-        $can_sell = true;
-    } else {
-        $can_sell = false;
-        $lock_reason = "Đã đóng cửa (23h-06h)";
-    }
+    if ($role == 'admin' || $my_shift == 'full') { $can_sell = true; } 
+    else { $can_sell = false; $lock_reason = "Đã đóng cửa (23h-06h)"; }
 }
 
 // --- 2. LẤY DANH SÁCH SẢN PHẨM ---
@@ -36,10 +32,23 @@ $categories_list = [];
 
 if (mysqli_num_rows($result) > 0) {
     while ($row = mysqli_fetch_assoc($result)) {
-        $menu_data[$row['category_id']]['name'] = $row['category_name'];
-        $menu_data[$row['category_id']]['products'][] = $row;
-        if (!isset($categories_list[$row['category_id']])) {
-            $categories_list[$row['category_id']] = $row['category_name'];
+        // Lưu tồn kho
+        $stock_list[$row['id']] = (int)$row['stock'];
+
+        // Logic phân loại MỚI: Chỉ tìm chữ "topping"
+        $cat_name_lower = mb_strtolower($row['category_name'], 'UTF-8');
+        
+        // CHỈNH SỬA TẠI ĐÂY: Bỏ điều kiện kiểm tra chữ "thêm"
+        if (strpos($cat_name_lower, 'topping') !== false) {
+            $topping_list[] = $row; // Chỉ "Topping..." mới vào đây
+        } else {
+            // "Đồ ăn thêm", "Đồ ăn chơi"... sẽ chạy vào đây và hiện lên Menu
+            $menu_data[$row['category_id']]['name'] = $row['category_name'];
+            $menu_data[$row['category_id']]['products'][] = $row;
+            
+            if (!isset($categories_list[$row['category_id']])) {
+                $categories_list[$row['category_id']] = $row['category_name'];
+            }
         }
     }
 }
@@ -60,8 +69,7 @@ if (mysqli_num_rows($result) > 0) {
 
     <main class="main-product-area">
         <?php if (!$can_sell): ?>
-            <div
-                style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba; display:flex; align-items:center; gap: 10px;">
+            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba; display:flex; align-items:center; gap: 10px;">
                 <span style="font-size: 24px;">⛔</span>
                 <div>
                     <strong>Chế độ Xem (View Only)</strong><br>
@@ -75,21 +83,17 @@ if (mysqli_num_rows($result) > 0) {
                 <div id="cat-<?php echo $cat_id; ?>" class="category-section">
                     <div class="category-section-title"><?php echo htmlspecialchars($data['name']); ?></div>
                     <div class="product-grid">
-                        <?php foreach ($data['products'] as $prod):
+                        <?php foreach ($data['products'] as $prod): 
                             $is_locked = (isset($prod['is_locked']) && $prod['is_locked'] == 1);
                             $card_class = $is_locked ? "product-card locked-item" : "product-card";
                             // Gọi hàm mở Modal chọn món
-                            $click_action = $is_locked
-                                ? "showToast('⛔ Món này đang tạm ngưng!', 'error')"
+                            $click_action = $is_locked 
+                                ? "showToast('⛔ Món này đang tạm ngưng!', 'error')" 
                                 : "openOptionModal({$prod['id']}, '" . htmlspecialchars(addslashes($prod['name'])) . "', {$prod['price']}, '../admin/uploads/" . htmlspecialchars($prod['image']) . "')";
-                            ?>
-                            <div class="<?php echo $card_class; ?>" data-id="<?php echo $prod['id']; ?>"
-                                data-name="<?php echo htmlspecialchars($prod['name']); ?>"
-                                data-stock="<?php echo $prod['stock']; ?>" onclick="<?php echo $click_action; ?>">
-                                <?php if ($is_locked): ?>
-                                    <div class="locked-overlay">TẠM NGƯNG</div><?php endif; ?>
-                                <img src="../admin/uploads/<?php echo htmlspecialchars($prod['image']); ?>" class="product-img"
-                                    alt="img">
+                        ?>
+                            <div class="<?php echo $card_class; ?>" onclick="<?php echo $click_action; ?>">
+                                <?php if($is_locked): ?><div class="locked-overlay">TẠM NGƯNG</div><?php endif; ?>
+                                <img src="../admin/uploads/<?php echo htmlspecialchars($prod['image']); ?>" class="product-img" alt="img">
                                 <div class="product-info">
                                     <div class="product-name"><?php echo htmlspecialchars($prod['name']); ?></div>
                                     <div class="product-price"><?php echo number_format($prod['price']); ?> đ</div>
@@ -104,12 +108,7 @@ if (mysqli_num_rows($result) > 0) {
 </div>
 
 <div class="fab-cart" onclick="toggleCart()">
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2">
-        <circle cx="9" cy="21" r="1"></circle>
-        <circle cx="20" cy="21" r="1"></circle>
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-    </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
     <div id="cart-badge" class="cart-badge">0</div>
 </div>
 
@@ -121,18 +120,14 @@ if (mysqli_num_rows($result) > 0) {
         </div>
         <div class="cart-modal-body" id="cart-body"></div>
         <div class="cart-modal-footer">
-            <div
-                style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; font-size: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; font-size: 16px;">
                 <span>Tổng tiền:</span>
                 <span id="cart-total-price" style="color: #d32f2f;">0 đ</span>
             </div>
-            <button onclick="showCheckoutModal()" id="btn-checkout"
-                style="width: 100%; padding: 12px; background: #5B743A; color: white; border: none; border-radius: 6px; font-weight: bold;"
-                <?php echo (!$can_sell) ? 'disabled' : ''; ?>>
+            <button onclick="showCheckoutModal()" id="btn-checkout" style="width: 100%; padding: 12px; background: #5B743A; color: white; border: none; border-radius: 6px; font-weight: bold;" <?php echo (!$can_sell) ? 'disabled' : ''; ?>>
                 <?php echo (!$can_sell) ? '⛔ ĐANG KHÓA' : 'THANH TOÁN'; ?>
             </button>
-            <?php if (!$can_sell): ?>
-                <script>document.getElementById('btn-checkout').style.backgroundColor = '#ccc';</script><?php endif; ?>
+            <?php if (!$can_sell): ?><script>document.getElementById('btn-checkout').style.backgroundColor = '#ccc';</script><?php endif; ?>
         </div>
     </div>
 </div>
@@ -141,11 +136,9 @@ if (mysqli_num_rows($result) > 0) {
     <div class="modal-content-checkout">
         <div class="modal-icon-checkout">🧾</div>
         <div class="modal-title-checkout">Xác nhận Thanh toán?</div>
-        <div class="modal-desc-checkout">Tổng tiền: <strong id="modal-checkout-total" style="color: #d32f2f;">0
-                đ</strong></div>
+        <div class="modal-desc-checkout">Tổng tiền: <strong id="modal-checkout-total" style="color: #d32f2f;">0 đ</strong></div>
         <div class="modal-actions-checkout">
-            <button class="btn-modal-checkout btn-cancel-checkout"
-                onclick="document.getElementById('checkoutConfirmModal').style.display='none'">Hủy</button>
+            <button class="btn-modal-checkout btn-cancel-checkout" onclick="document.getElementById('checkoutConfirmModal').style.display='none'">Hủy</button>
             <button class="btn-modal-checkout btn-confirm-checkout" onclick="submitCheckoutProcess()">Xác nhận</button>
         </div>
     </div>
@@ -169,20 +162,16 @@ if (mysqli_num_rows($result) > 0) {
             <div class="opt-section">
                 <span class="opt-title">Kích cỡ (Size):</span>
                 <div class="radio-group">
-                    <label class="radio-btn"><input type="radio" name="opt_size" value="S" data-price="0"
-                            onclick="updateTotalPrice()"><span>Nhỏ (S)</span></label>
-                    <label class="radio-btn"><input type="radio" name="opt_size" value="M" data-price="0" checked
-                            onclick="updateTotalPrice()"><span>Vừa (M)</span></label>
-                    <label class="radio-btn"><input type="radio" name="opt_size" value="L" data-price="5000"
-                            onclick="updateTotalPrice()"><span>Lớn (L) +5k</span></label>
+                    <label class="radio-btn"><input type="radio" name="opt_size" value="S" data-price="0" onclick="updateTotalPrice()"><span>Nhỏ (S)</span></label>
+                    <label class="radio-btn"><input type="radio" name="opt_size" value="M" data-price="0" checked onclick="updateTotalPrice()"><span>Vừa (M)</span></label>
+                    <label class="radio-btn"><input type="radio" name="opt_size" value="L" data-price="5000" onclick="updateTotalPrice()"><span>Lớn (L) +5k</span></label>
                 </div>
             </div>
 
             <div class="opt-section">
                 <span class="opt-title">Lượng Đá (Miễn phí):</span>
                 <div class="radio-group">
-                    <label class="radio-btn"><input type="radio" name="opt_ice" value="100%" checked><span>100%
-                            Đá</span></label>
+                    <label class="radio-btn"><input type="radio" name="opt_ice" value="100%" checked><span>100% Đá</span></label>
                     <label class="radio-btn"><input type="radio" name="opt_ice" value="70%"><span>70% Đá</span></label>
                     <label class="radio-btn"><input type="radio" name="opt_ice" value="30%"><span>30% Đá</span></label>
                     <label class="radio-btn"><input type="radio" name="opt_ice" value="0%"><span>Không Đá</span></label>
@@ -190,23 +179,13 @@ if (mysqli_num_rows($result) > 0) {
                 </div>
             </div>
 
-            <div class="opt-section">
-                <span class="opt-title">Thêm Topping / Đồ ăn kèm:</span>
-                <div id="topping-list">
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Trân châu đen"
-                            data-price="5000" onclick="updateTotalPrice()"> <span>Trân châu đen (+5k)</span></label>
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Thạch trái cây"
-                            data-price="5000" onclick="updateTotalPrice()"> <span>Thạch trái cây (+5k)</span></label>
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Pudding trứng"
-                            data-price="7000" onclick="updateTotalPrice()"> <span>Pudding trứng (+7k)</span></label>
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Bánh flan"
-                            data-price="10000" onclick="updateTotalPrice()"> <span>Bánh flan (+10k)</span></label>
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Hướng dương"
-                            data-price="15000" onclick="updateTotalPrice()"> <span>Hướng dương (+15k)</span></label>
-                </div>
+            <div class="opt-section" id="section-topping" style="display:none;">
+                <span class="opt-title">Topping / Ăn kèm:</span>
+                <div id="topping-list-container">
+                    </div>
             </div>
         </div>
-
+        
         <div class="opt-footer">
             <div>Tổng: <span id="opt-total-price" class="price-tag">0 đ</span></div>
             <div class="btn-group-action">
@@ -220,21 +199,52 @@ if (mysqli_num_rows($result) > 0) {
 <div id="toast-container"></div>
 
 <script>
-    let cart = {};
-    let currentProd = {};
+    // 1. Danh sách tồn kho của tất cả sản phẩm
+    const stockData = <?php echo json_encode($stock_list); ?>;
+    
+    // 2. Danh sách Topping lấy từ DB
+    const toppingData = <?php echo json_encode($topping_list); ?>;
+</script>
+
+<script>
+    let cart = {}; 
+    let currentProd = {}; 
 
     // --- HÀM MỞ MODAL CHỌN MÓN ---
     function openOptionModal(id, name, basePrice, img) {
         currentProd = { id: id, name: name, basePrice: basePrice, img: img };
-
+        
         document.getElementById('opt-product-name').innerText = name;
         document.getElementById('opt-product-base-price').innerText = basePrice.toLocaleString() + ' đ';
         document.getElementById('opt-product-img').src = img;
+        
+        // Reset Inputs cơ bản
+        document.getElementsByName('opt_size').forEach(r => { if(r.value === 'M') r.checked = true; });
+        document.getElementsByName('opt_ice').forEach(r => { if(r.value === '100%') r.checked = true; });
+        
+        // --- PHẦN MỚI: RENDER TOPPING TỪ CSDL ---
+        const toppingContainer = document.getElementById('topping-list-container');
+        const toppingSection = document.getElementById('section-topping');
+        toppingContainer.innerHTML = ''; // Xóa cũ
 
-        // Reset Inputs
-        document.getElementsByName('opt_size').forEach(r => { if (r.value === 'M') r.checked = true; });
-        document.getElementsByName('opt_ice').forEach(r => { if (r.value === '100%') r.checked = true; });
-        document.querySelectorAll('.chk-topping').forEach(c => c.checked = false);
+        // Kiểm tra xem có Topping nào trong CSDL không
+        if (toppingData && toppingData.length > 0) {
+            toppingSection.style.display = 'block';
+            toppingData.forEach(top => {
+                // Chỉ hiện topping còn hàng
+                if(top.stock > 0) {
+                    let html = `
+                        <label class="topping-item">
+                            <input type="checkbox" class="chk-topping" value="${top.name}" data-price="${top.price}" onclick="updateTotalPrice()"> 
+                            <span>${top.name} (+${parseInt(top.price).toLocaleString()}đ)</span>
+                        </label>`;
+                    toppingContainer.innerHTML += html;
+                }
+            });
+        } else {
+            // Nếu không có topping nào thì ẩn mục này đi
+            toppingSection.style.display = 'none';
+        }
 
         updateTotalPrice();
         document.getElementById('productOptionModal').style.display = 'flex';
@@ -248,8 +258,8 @@ if (mysqli_num_rows($result) > 0) {
     function updateTotalPrice() {
         let price = currentProd.basePrice;
         let sizeEl = document.querySelector('input[name="opt_size"]:checked');
-        if (sizeEl) price += parseInt(sizeEl.getAttribute('data-price'));
-
+        if(sizeEl) price += parseInt(sizeEl.getAttribute('data-price'));
+        
         document.querySelectorAll('.chk-topping:checked').forEach(t => price += parseInt(t.getAttribute('data-price')));
         document.getElementById('opt-total-price').innerText = price.toLocaleString() + ' đ';
         return price;
@@ -257,35 +267,31 @@ if (mysqli_num_rows($result) > 0) {
 
     // --- THÊM VÀO GIỎ ---
     function confirmAddToCart(isBuyNow) {
-        // Kiểm tra tồn kho trước khi thêm
-        let productCard = document.querySelector(`[data-id="${currentProd.id}"]`);
-        let availableStock = parseInt(productCard.getAttribute('data-stock'));
-        
-        // Tính số lượng đã có trong giỏ
-        let qtyInCart = 0;
+
+        let id = currentProd.id;
+        let maxStock = stockData[id] || 0;
+
+        let currentQtyInCart = 0;
         for (let key in cart) {
-            if (cart[key].id == currentProd.id) {
-                qtyInCart += cart[key].quantity;
+            if (cart[key].id == id) {
+                currentQtyInCart += cart[key].quantity;
             }
         }
-        
-        // Số lượng sau khi thêm món này
-        let totalAfterAdd = qtyInCart + 1;
-        
-        if (totalAfterAdd > availableStock) {
-            showToast(`⚠️ Chỉ còn ${availableStock} sản phẩm!\nBạn đã có ${qtyInCart} trong giỏ.`, 'error');
-            return false;
+
+        if (currentQtyInCart + 1 > maxStock) {
+            showToast(`⚠️ Không thể thêm! Kho chỉ còn ${maxStock} món.`, 'error');
+            return; // Dừng hàm ngay lập tức, không cho thêm
         }
-        
+
         let size = document.querySelector('input[name="opt_size"]:checked').value;
         let ice = document.querySelector('input[name="opt_ice"]:checked').value;
         let toppingArr = [];
         document.querySelectorAll('.chk-topping:checked').forEach(t => toppingArr.push(t.value));
-
-        let finalPrice = updateTotalPrice();
+        
+        let finalPrice = updateTotalPrice(); 
         let uniqueKey = `${currentProd.id}_${size}_${ice}_${toppingArr.join('')}`;
         let note = `Size: ${size}, Đá: ${ice}`;
-        if (toppingArr.length > 0) note += `, Topping: ${toppingArr.join(', ')}`;
+        if(toppingArr.length > 0) note += `, Topping: ${toppingArr.join(', ')}`;
 
         if (cart[uniqueKey]) {
             cart[uniqueKey].quantity++;
@@ -314,30 +320,47 @@ if (mysqli_num_rows($result) > 0) {
         body.innerHTML = '';
 
         if (Object.keys(cart).length === 0) {
-            body.innerHTML = `<div style="text-align:center;color:#999;padding-top:20px;">Giỏ hàng trống</div>`;
+            body.innerHTML = `<div style="text-align:center;color:#999;padding-top:20px;">
+                                <div style="font-size: 30px; margin-bottom: 10px;">🛒</div>
+                                Giỏ hàng trống
+                              </div>`;
             totalSpan.innerText = '0 đ';
             return;
         }
 
         for (let key in cart) {
             let item = cart[key];
-            total += item.price * item.quantity;
+            let itemTotal = item.price * item.quantity;
+            total += itemTotal;
+
+            // Xử lý chuỗi Note để hiển thị đẹp hơn
+            // Ví dụ note gốc: "Size: M, Đá: 50%, Topping: Kem muối, Thạch trà"
+            // Ta sẽ tách dòng Topping ra cho dễ nhìn
+            let displayNote = item.note;
+            if(displayNote.includes("Topping:")) {
+                // Thay thế dấu phẩy ngăn cách topping bằng thẻ xuống dòng <br> hoặc dấu chấm tròn
+                displayNote = displayNote.replace("Topping:", "<br><b>+ Topping:</b>");
+            }
+
             body.innerHTML += `
                 <div class="cart-item">
                     <div class="cart-item-left">
                         <div class="cart-item-name">${item.name}</div>
-                        ${item.note ? `<div class="cart-item-note">${item.note}</div>` : ''}
+                        <div class="cart-item-note" style="font-size: 13px; color: #666; margin-top: 4px; line-height: 1.4;">
+                            ${displayNote}
+                        </div>
                     </div>
+                    
                     <div class="cart-item-right">
                         <div class="cart-price">${item.price.toLocaleString()} đ</div>
+                        
                         <div class="cart-actions">
                             <button class="btn-sm-qty" onclick="adjustQty('${key}', -1)">-</button>
-                            <input type="number" class="qty-input" value="${item.quantity}" min="1" max="999" 
-                                   onchange="updateQtyDirect('${key}', this.value)" 
-                                   onclick="this.select()">
+                            <span class="qty-display">${item.quantity}</span>
                             <button class="btn-sm-qty" onclick="adjustQty('${key}', 1)">+</button>
                         </div>
-                        <button class="btn-del-item" onclick="removeItem('${key}')">Xóa</button>
+                        
+                        <button class="btn-del-item" onclick="removeItem('${key}')">×</button>
                     </div>
                 </div>`;
         }
@@ -346,28 +369,22 @@ if (mysqli_num_rows($result) > 0) {
 
     function adjustQty(key, delta) {
         if (cart[key]) {
+            if (delta > 0) { // Chỉ kiểm tra khi bấm Tăng
+                let id = cart[key].id;
+                let maxStock = stockData[id] || 0;
+                
+                let currentQtyInCart = 0;
+                for (let k in cart) { if(cart[k].id == id) currentQtyInCart += cart[k].quantity; }
+
+                if (currentQtyInCart + 1 > maxStock) {
+                    showToast(`⚠️ Hết hàng! Kho chỉ còn ${maxStock}.`, 'error');
+                    return; // Chặn không cho tăng
+                }
+            }
             cart[key].quantity += delta;
             if (cart[key].quantity <= 0) delete cart[key];
             updateCartBadge(); renderCartModal();
         }
-    }
-
-    // Hàm mới: Cập nhật số lượng khi nhập trực tiếp
-    function updateQtyDirect(key, newQty) {
-        newQty = parseInt(newQty);
-        if (isNaN(newQty) || newQty < 1) {
-            showToast('Số lượng tối thiểu là 1!', 'error');
-            renderCartModal();
-            return;
-        }
-        if (newQty > 999) {
-            showToast('Số lượng tối đa là 999!', 'error');
-            cart[key].quantity = 999;
-        } else {
-            cart[key].quantity = newQty;
-        }
-        updateCartBadge();
-        renderCartModal();
     }
 
     function removeItem(key) {
@@ -379,27 +396,27 @@ if (mysqli_num_rows($result) > 0) {
         let total = 0;
         for (let key in cart) total += cart[key].price * cart[key].quantity;
         document.getElementById('modal-checkout-total').innerText = total.toLocaleString('vi-VN') + ' đ';
-        document.getElementById('cart-modal-overlay').style.display = 'none';
-        document.getElementById('checkoutConfirmModal').style.display = 'flex';
+        document.getElementById('cart-modal-overlay').style.display = 'none'; 
+        document.getElementById('checkoutConfirmModal').style.display = 'flex'; 
     }
 
     function toggleCart() {
         let overlay = document.getElementById('cart-modal-overlay');
         overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
-        if (overlay.style.display === 'flex') renderCartModal();
+        if(overlay.style.display === 'flex') renderCartModal();
     }
-    document.getElementById('cart-modal-overlay').addEventListener('click', function (e) { if (e.target === this) toggleCart(); });
+    document.getElementById('cart-modal-overlay').addEventListener('click', function(e){ if(e.target === this) toggleCart(); });
 
     async function submitCheckoutProcess() {
         document.getElementById('checkoutConfirmModal').style.display = 'none';
-        <?php if (!$can_sell): ?>showToast("⛔ <?php echo $lock_reason; ?>", 'error'); return; <?php endif; ?>
-
+        <?php if (!$can_sell): ?>showToast("⛔ <?php echo $lock_reason; ?>", 'error'); return;<?php endif; ?>
+        
         try {
             const response = await fetch('checkout_process.php', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cart)
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cart) 
             });
             const result = await response.json();
-            if (result.success) { showToast(result.message, 'success'); cart = {}; updateCartBadge(); }
+            if (result.success) { showToast(result.message, 'success'); cart = {}; updateCartBadge(); } 
             else { showToast(result.message, 'error'); }
         } catch (error) { showToast('Lỗi kết nối!', 'error'); }
     }
@@ -417,7 +434,7 @@ if (mysqli_num_rows($result) > 0) {
     }
 </script>
 
-<?php
+<?php 
 
-disconnect_db();
+disconnect_db(); 
 ?>

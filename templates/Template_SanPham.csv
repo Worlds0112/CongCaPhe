@@ -1,0 +1,19 @@
+category_id,name,price,cost_price,stock,description
+1,Che thach tong hop,55000,16500,20,Mon che dac trung cua quan
+1,Che xoai doi moi,55000,16500,20,Che xoai tuoi mat
+2,Cot dua ca phe,59000,17000,20,Cot dua ket hop ca phe
+2,Cot dua gom xanh,69000,20000,15,Cot dua vi gom xanh
+3,Bac xiu,45000,10500,19,Ca phe sua truyen thong
+3,Nau kem muoi,49000,11000,16,Ca phe sua voi kem muoi
+3,Sua da Sai Gon,45000,10500,14,Ca phe sua da kieu Sai Gon
+4,Shan kem gung,55000,16500,15,Tra shan tuyet voi kem gung
+4,Shan nhai sua,55000,16500,14,Tra shan tuyet vi nhai
+5,Cacao que,65000,19500,4,Cacao nong vi que
+5,Ha Noi sau soda,65000,19500,16,Nuoc sau soda dac trung Ha Noi
+6,Chanh leo tuyet,69000,20000,12,Sinh to chanh leo da xay
+6,Cam tuoi,69000,20000,25,Nuoc cam vat tuoi
+7,Sua chua tuyet,49000,11000,20,Sua chua da tuyet mat
+8,Kem muoi,9000,800,49,Topping kem muoi
+8,Thach tra,9000,800,49,Topping thach tra
+9,Xoai say deo,39000,8000,20,An vat xoai say
+9,Mi tom trung,39000,8000,30,Mi tom trung nong
