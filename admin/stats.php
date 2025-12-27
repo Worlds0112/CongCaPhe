@@ -214,7 +214,49 @@ for ($m = 1; $m <= 12; $m++) {
     @media (max-width: 900px) { .charts-row-top, .charts-row-bottom { grid-template-columns: 1fr; } }
 </style>
 
-<h2 style="border-left: 5px solid #28a745; padding-left: 15px; margin-bottom: 20px;">Trung Tâm Thống Kê</h2>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <h2 style="border-left: 5px solid #28a745; padding-left: 15px; margin: 0;">Trung Tâm Thống Kê</h2>
+    
+    <form action="export_stats_excel.php" method="GET" target="_blank" style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+        
+        <select name="shift" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="">-- Ca --</option>
+            <option value="sang">Sáng</option>
+            <option value="chieu">Chiều</option>
+            <option value="toi">Tối</option>
+        </select>
+
+        <select name="day" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="">Cả tháng</option>
+            <?php for($d=1; $d<=31; $d++): ?>
+                <option value="<?php echo $d; ?>"><?php echo $d; ?></option>
+            <?php endfor; ?>
+        </select>
+
+        <select name="month" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <?php 
+            $curMonth = date('m');
+            for($m=1; $m<=12; $m++){ 
+                $sel = ($m == $curMonth) ? 'selected' : ''; 
+                echo "<option value='$m' $sel>T.$m</option>"; 
+            } 
+            ?>
+        </select>
+
+        <select name="year" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <?php 
+            $curYear = date('Y'); 
+            for($y=$curYear; $y>=$curYear-2; $y--){ 
+                echo "<option value='$y'>$y</option>"; 
+            } 
+            ?>
+        </select>
+
+        <button type="submit" style="background: #217346; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px;">
+            📥 Xuất Excel
+        </button>
+    </form>
+</div>
 
 <div class="fund-card">
     <div class="fund-info" style="flex: 1;">

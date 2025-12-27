@@ -95,11 +95,35 @@ $total_profit = $total_revenue - $total_cost;
     .text-muted { color: #999; font-size: 0.9em; }
 
     .total-row td { background-color: #ffffeb; font-weight: bold; font-size: 16px; padding-top: 15px; padding-bottom: 15px; border-top: 2px solid #ddd; }
+    /* CSS cho nút Xuất Excel */
+    .btn-excel {
+        display: inline-block;
+        background-color: #217346; /* Màu xanh Excel */
+        color: white;
+        padding: 8px 15px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        font-size: 14px;
+        transition: 0.2s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .btn-excel:hover {
+        background-color: #1e6b41;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
 </style>
 
 <div class="admin-wrapper">
 
-    <a href="order_list.php" class="btn-back">← Quay lại danh sách</a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <a href="order_list.php" class="btn-back" style="margin-bottom: 0;">← Quay lại danh sách</a>
+        
+        <a href="../excel/export_order_excel.php?id=<?php echo $order_id; ?>" class="btn-excel" target="_blank">
+            📥 Xuất Hóa Đơn Excel
+        </a>
+    </div>
 
     <?php if ($order_info): ?>
         <div style="display:flex; justify-content:space-between; align-items:center;">

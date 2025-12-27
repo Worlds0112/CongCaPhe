@@ -173,5 +173,3 @@ while ($row = mysqli_fetch_assoc($q_prods)) {
         }
     }
 </script>
-
-<?php require '../includes/footer.php'; ?>

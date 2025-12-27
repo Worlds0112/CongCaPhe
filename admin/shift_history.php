@@ -1,135 +1,237 @@
 <?php
-// 1. BẢO VỆ TRANG (Chỉ Admin mới được vào)
+// 1. KẾT NỐI & BẢO VỆ
 require '../includes/auth_admin.php';
 require '../includes/header.php';
 require '../includes/admin_sidebar.php'; 
+
 echo '<div class="main-with-sidebar">';
+echo '<div class="admin-wrapper" style="margin: 0; max-width: none; flex: 1;">';
 
-// 2. XỬ LÝ LỌC NGÀY
-$filter_date = isset($_GET['date']) ? $_GET['date'] : '';
+// --- 2. CẤU HÌNH PHÂN TRANG & LỌC ---
+$limit = 10;
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $limit;
 
-$sql = "SELECT r.*, u.full_name, u.username 
-        FROM shift_reports r 
-        JOIN users u ON r.user_id = u.id 
-        WHERE 1=1";
+// Nhận dữ liệu tìm kiếm
+$filter_shift = isset($_GET['shift']) ? $_GET['shift'] : ''; 
+$filter_day   = isset($_GET['day']) ? $_GET['day'] : "";    
+$filter_month = isset($_GET['month']) ? $_GET['month'] : ""; 
+$filter_year  = isset($_GET['year']) ? $_GET['year'] : date('Y'); // Mặc định năm nay
+if ($filter_year == 'all') $filter_year = '';
 
-if ($filter_date) {
-    $sql .= " AND r.report_date = '$filter_date'";
+// --- 3. TẠO ĐIỀU KIỆN QUERY ---
+$where_sql = "WHERE 1=1";
+
+if (!empty($filter_shift) && $filter_shift != 'all') {
+    $where_sql .= " AND r.shift_code = '$filter_shift'";
+}
+if (!empty($filter_day)) {
+    $where_sql .= " AND DAY(r.report_date) = '$filter_day'";
+}
+if (!empty($filter_month)) {
+    $where_sql .= " AND MONTH(r.report_date) = '$filter_month'";
+}
+if (!empty($filter_year)) {
+    $where_sql .= " AND YEAR(r.report_date) = '$filter_year'";
 }
 
-$sql .= " ORDER BY r.created_at DESC";
-$result = mysqli_query($conn, $sql);
+// --- 4. QUERY 1: TÍNH TỔNG QUÁT (DASHBOARD) ---
+// Tính tổng tiền hệ thống, tiền thực tế và chênh lệch của TOÀN BỘ kết quả lọc
+$sql_sum = "SELECT 
+                COUNT(*) as total_reports,
+                SUM(r.system_revenue) as sum_system,
+                SUM(r.real_cash) as sum_real,
+                SUM(r.difference) as sum_diff
+            FROM shift_reports r 
+            $where_sql";
+$result_sum = mysqli_query($conn, $sql_sum);
+$row_sum = mysqli_fetch_assoc($result_sum);
+
+$total_records = $row_sum['total_reports'];
+$sum_system    = $row_sum['sum_system'] ?? 0;
+$sum_real      = $row_sum['sum_real'] ?? 0;
+$sum_diff      = $row_sum['sum_diff'] ?? 0;
+
+$total_pages = ceil($total_records / $limit);
+
+// --- 5. QUERY 2: LẤY DỮ LIỆU HIỂN THỊ (CÓ LIMIT) ---
+$sql_data = "SELECT r.*, u.full_name, u.username 
+             FROM shift_reports r 
+             JOIN users u ON r.user_id = u.id 
+             $where_sql 
+             ORDER BY r.created_at DESC 
+             LIMIT $offset, $limit";
+$result_data = mysqli_query($conn, $sql_data);
 ?>
 
 <style>
-    /* --- 1. MÀU ĐẶC TRƯNG CHO TRANG LỊCH SỬ (MÀU VÀNG #ffc107) --- */
-    h2 {
-        border-left-color: #ffc107;
-    }
+    /* CSS Dashboard Stats (Giống Order List) */
+    .dashboard-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid #ccc; }
+    .stat-card h4 { margin: 0 0 5px 0; font-size: 14px; color: #666; text-transform: uppercase; }
+    .stat-card .value { font-size: 22px; font-weight: bold; }
     
-    /* Màu focus cho input/select */
-    .form-control:focus {
-        border-color: #ffc107;
-        box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3);
-    }
+    .card-system { border-color: #007bff; } .card-system .value { color: #007bff; }
+    .card-real { border-color: #28a745; } .card-real .value { color: #28a745; }
     
-    /* Nút Lọc (Filter) */
-    .btn-filter {
-        background: #ffc107; /* Màu vàng */
-        color: #333;
-    }
-    .btn-filter:hover {
-        background: #e0a800;
-        color: #333;
-    }
+    /* Xử lý màu cho ô chênh lệch tổng */
+    .card-diff { border-color: #6c757d; }
+    .card-diff.diff-pos { border-color: #28a745; } .card-diff.diff-pos .value { color: #28a745; }
+    .card-diff.diff-neg { border-color: #dc3545; } .card-diff.diff-neg .value { color: #dc3545; }
 
-    /* --- 2. CSS cho trạng thái chênh lệch (UNIQUE) --- */
-    .diff-ok {
-        color: #aaa;
-        font-weight: bold;
-    }
+    /* Filter CSS */
+    .filter-card { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .filter-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #555; }
+    .form-control { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .btn-filter { background: #ffc107; color: #333; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; height: 38px; font-weight: bold;}
+    .btn-reset { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; color: #666; text-decoration: none; margin-left: 5px; }
+    
+    /* Table & Badge */
+    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
+    th { background: #f8f9fa; color: #555; text-transform: uppercase; font-size: 12px; font-weight: 700; }
+    
+    .diff-ok { color: #aaa; font-weight: bold; font-size: 13px; }
+    .diff-pos { color: #28a745; font-weight: bold; }
+    .diff-neg { color: #dc3545; font-weight: bold; }
 
-    .diff-pos {
-        color: #28a745; /* Xanh lá: Thừa */
-        font-weight: bold;
-    }
+    /* Shift Badge */
+    .shift-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-bottom: 4px;}
+    .shift-sang { background: #d1e7dd; color: #0f5132; }
+    .shift-chieu { background: #fff3cd; color: #856404; }
+    .shift-toi { background: #e0cffc; color: #59359a; }
 
-    .diff-neg {
-        color: #dc3545; /* Đỏ: Thiếu */
-        font-weight: bold;
-    }
+    /* Pagination */
+    .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
+    .pagination a, .pagination span { padding: 8px 12px; border: 1px solid #ddd; background: white; text-decoration: none; color: #333; border-radius: 4px; }
+    .pagination .active { background: #ffc107; border-color: #ffc107; font-weight: bold; }
+    .pagination .disabled { color: #ccc; pointer-events: none; }
 </style>
 
-<div class="admin-wrapper">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <h2 style="margin:0; border-left: 5px solid #ffc107; padding-left: 15px; color: #333;">Lịch sử Kết Ca & Bàn Giao</h2>
+        <a href="export_shift_excel.php?<?php echo http_build_query($_GET); ?>" target="_blank" 
+           style="background: #217346; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            📥 Xuất Báo Cáo Excel
+        </a>
+    </div>
 
-    <h2 class="title-history">Lịch sử Kết Ca & Bàn Giao</h2>
+    <div class="dashboard-stats">
+        <div class="stat-card card-system">
+            <h4>Doanh thu Máy (Hệ thống)</h4>
+            <div class="value"><?php echo number_format($sum_system); ?> ₫</div>
+        </div>
+        <div class="stat-card card-real">
+            <h4>Tiền Mặt Thực Tế (Két)</h4>
+            <div class="value"><?php echo number_format($sum_real); ?> ₫</div>
+        </div>
+        
+        <?php 
+            $diff_class = "";
+            $diff_display = number_format($sum_diff);
+            if($sum_diff > 0) { $diff_class = "diff-pos"; $diff_display = "+".$diff_display; }
+            elseif($sum_diff < 0) { $diff_class = "diff-neg"; }
+        ?>
+        <div class="stat-card card-diff <?php echo $diff_class; ?>">
+            <h4>Tổng Chênh Lệch</h4>
+            <div class="value"><?php echo $diff_display; ?> ₫</div>
+        </div>
+    </div>
 
     <div class="filter-card">
         <form method="GET" class="filter-row">
             
-            <div class="filter-group">
-                <label>Xem báo cáo ngày</label>
-                <input type="date" name="date" class="form-control" value="<?php echo $filter_date; ?>">
+            <div class="filter-group" style="width: 120px;">
+                <label>Chọn Ca</label>
+                <select name="shift" class="form-control">
+                    <option value="all">Tất cả</option>
+                    <option value="sang" <?php if($filter_shift == 'sang') echo 'selected'; ?>>Sáng</option>
+                    <option value="chieu" <?php if($filter_shift == 'chieu') echo 'selected'; ?>>Chiều</option>
+                    <option value="toi" <?php if($filter_shift == 'toi') echo 'selected'; ?>>Tối</option>
+                </select>
+            </div>
+
+            <div class="filter-group" style="width: 80px;">
+                <label>Ngày</label>
+                <select name="day" class="form-control">
+                    <option value="">--</option>
+                    <?php for($d=1; $d<=31; $d++): ?>
+                        <option value="<?php echo $d; ?>" <?php if($filter_day == $d) echo 'selected'; ?>><?php echo $d; ?></option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+
+            <div class="filter-group" style="width: 100px;">
+                <label>Tháng</label>
+                <select name="month" class="form-control">
+                    <option value="">Tất cả</option>
+                    <?php for($m=1; $m<=12; $m++): ?>
+                        <option value="<?php echo $m; ?>" <?php if($filter_month == $m) echo 'selected'; ?>>Tháng <?php echo $m; ?></option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+
+            <div class="filter-group" style="width: 100px;">
+                <label>Năm</label>
+                <select name="year" class="form-control">
+                    <option value="all">Tất cả</option>
+                    <?php $c=date('Y'); for($y=$c; $y>=$c-5; $y--): ?>
+                        <option value="<?php echo $y; ?>" <?php if($filter_year == $y) echo 'selected'; ?>><?php echo $y; ?></option>
+                    <?php endfor; ?>
+                </select>
             </div>
             
-            <div class="filter-group action-group" style="flex-direction: row; align-items: flex-end;">
-                <button type="submit" class="btn-filter">Xem</button>
-
-                <?php if ($filter_date): ?>
-                    <a href="shift_history.php" class="btn-reset" title="Xóa bộ lọc">↺</a>
+            <div class="filter-group action-group" style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn-filter">Xem Báo Cáo</button>
+                <?php if ($filter_shift || $filter_day || $filter_month || ($filter_year != date('Y'))): ?>
+                    <a href="shift_history.php" class="btn-reset" title="Đặt lại">↺</a>
                 <?php endif; ?>
             </div>
         </form>
-        
-        <?php if ($filter_date): ?>
-            <div style="font-weight:bold; font-size:14px; color:#333;">
-                Đang xem báo cáo ngày: 
-                <span style="color:#ffc107; font-size:16px;">
-                    <?php echo date('d/m/Y', strtotime($filter_date)); ?>
-                </span>
-            </div>
-        <?php endif; ?>
     </div>
 
-    <?php if ($result && mysqli_num_rows($result) > 0): ?>
+    <div style="margin-bottom: 15px; font-size: 13px; color: #666; font-style: italic; display:flex; justify-content:space-between;">
+        <span>Đang xem trang: <strong><?php echo $page; ?>/<?php echo $total_pages; ?></strong></span>
+        <span>Tổng: <strong><?php echo $total_records; ?></strong> phiếu báo cáo</span>
+    </div>
+
+    <?php if ($result_data && mysqli_num_rows($result_data) > 0): ?>
         <table>
             <thead>
                 <tr>
                     <th>Thời gian</th>
-                    <th>Ca làm việc</th>
                     <th>Nhân viên</th>
-                    <th>Doanh thu (Máy)</th>
-                    <th>Thực tế (Két)</th>
-                    <th>Chênh lệch</th>
-                    <th>Ghi chú Kho</th>
-                    <th>Ghi chú Chung</th>
+                    <th style="text-align: right;">Doanh thu (Máy)</th>
+                    <th style="text-align: right;">Thực tế (Két)</th>
+                    <th style="text-align: right;">Chênh lệch</th>
+                    <th style="width: 250px;">Ghi chú</th>
                 </tr>
             </thead>
             <tbody>
-                <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                <?php while ($row = mysqli_fetch_assoc($result_data)): ?>
                     <tr>
                         <td>
-                            <strong><?php echo date('d/m/Y', strtotime($row['report_date'])); ?></strong><br>
-                            <small style="color:#777">Lúc <?php echo date('H:i', strtotime($row['created_at'])); ?></small>
-                        </td>
-                        <td>
                             <?php
-                            if ($row['shift_code'] == 'sang') echo '<span style="color:green; font-weight:bold">Ca Sáng</span>';
-                            elseif ($row['shift_code'] == 'chieu') echo '<span style="color:orange; font-weight:bold">Ca Chiều</span>';
-                            else echo '<span style="color:purple; font-weight:bold">Ca Tối</span>';
+                            if ($row['shift_code'] == 'sang') echo '<span class="shift-badge shift-sang">Ca Sáng</span>';
+                            elseif ($row['shift_code'] == 'chieu') echo '<span class="shift-badge shift-chieu">Ca Chiều</span>';
+                            else echo '<span class="shift-badge shift-toi">Ca Tối</span>';
                             ?>
+                            <div style="font-weight:bold; color: #333;"><?php echo date('d/m/Y', strtotime($row['report_date'])); ?></div>
+                            <small style="color:#999"><?php echo date('H:i', strtotime($row['created_at'])); ?></small>
                         </td>
                         <td>
-                            <?php echo htmlspecialchars($row['full_name']); ?><br>
-                            <small style="color:#999"><?php echo $row['username']; ?></small>
+                            <strong><?php echo htmlspecialchars($row['full_name']); ?></strong><br>
+                            <small style="color:#777">@<?php echo $row['username']; ?></small>
                         </td>
-                        <td>
+                        <td style="text-align: right; color: #007bff;">
                             <?php echo number_format($row['system_revenue']); ?> ₫
                         </td>
-                        <td style="font-weight:bold; color:#333;">
+                        <td style="text-align: right; font-weight:bold; color:#333;">
                             <?php echo number_format($row['real_cash']); ?> ₫
                         </td>
-                        <td>
+                        <td style="text-align: right;">
                             <?php
                             if ($row['difference'] == 0) {
                                 echo '<span class="diff-ok">✓ Khớp</span>';
@@ -141,30 +243,65 @@ $result = mysqli_query($conn, $sql);
                             ?>
                         </td>
 
-                        <td style="color: #d63384; font-size: 13px; max-width: 200px;">
-                            <?php
-                            echo !empty($row['inventory_notes']) ? nl2br(htmlspecialchars($row['inventory_notes'])) : '<span style="color:#ccc">-</span>';
-                            ?>
+                        <td style="font-size: 13px;">
+                            <?php if(!empty($row['inventory_notes'])): ?>
+                                <div style="margin-bottom: 5px; color: #d63384;">
+                                    <strong>Kho:</strong> <?php echo nl2br(htmlspecialchars($row['inventory_notes'])); ?>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <?php if(!empty($row['notes'])): ?>
+                                <div style="color: #666; font-style: italic;">
+                                    <strong>Chung:</strong> <?php echo nl2br(htmlspecialchars($row['notes'])); ?>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <?php if(empty($row['inventory_notes']) && empty($row['notes'])) echo '<span style="color:#ccc">-</span>'; ?>
                         </td>
-
-                        <td style="color: #666; font-style: italic; max-width: 200px;">
-                            <?php echo !empty($row['notes']) ? nl2br(htmlspecialchars($row['notes'])) : '<span style="color:#ccc">-</span>'; ?>
-                        </td>
-                        
-                        </tr>
+                    </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
+
+        <?php if ($total_pages > 1): ?>
+        <div class="pagination">
+            <?php
+            function get_url($p) {
+                $params = $_GET;
+                $params['page'] = $p;
+                return '?' . http_build_query($params);
+            }
+            ?>
+            <?php if ($page > 1): ?>
+                <a href="<?php echo get_url($page - 1); ?>">«</a>
+            <?php else: ?>
+                <span class="disabled">«</span>
+            <?php endif; ?>
+            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                <?php if ($i == 1 || $i == $total_pages || ($i >= $page - 2 && $i <= $page + 2)): ?>
+                    <a href="<?php echo get_url($i); ?>" class="<?php echo ($i == $page) ? 'active' : ''; ?>">
+                        <?php echo $i; ?>
+                    </a>
+                <?php elseif ($i == $page - 3 || $i == $page + 3): ?>
+                    <span class="disabled">...</span>
+                <?php endif; ?>
+            <?php endfor; ?>
+            <?php if ($page < $total_pages): ?>
+                <a href="<?php echo get_url($page + 1); ?>">»</a>
+            <?php else: ?>
+                <span class="disabled">»</span>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
     <?php else: ?>
-        <p style="text-align:center; padding: 30px; background: white; border-radius: 8px; color: #777;">
-            Chưa có dữ liệu báo cáo nào.
-        </p>
+        <div style="text-align:center; padding: 40px; background: white; border-radius: 8px; color: #777;">
+            Chưa có dữ liệu báo cáo nào phù hợp.
+        </div>
     <?php endif; ?>
 
-</div>
-
 <?php
-if ($result) mysqli_free_result($result);
+if ($result_data) mysqli_free_result($result_data);
 disconnect_db();
-echo '</div>';
+echo '</div></div>';
 ?>

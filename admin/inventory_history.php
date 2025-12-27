@@ -137,7 +137,11 @@ $result_data = mysqli_query($conn, $sql_data);
 
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
         <h2 style="margin:0; border-left: 5px solid #17a2b8; padding-left: 15px; color: #333;">Lịch sử Kho</h2>
-        <a href="inventory_import.php" class="btn-add">+ Nhập Hàng</a>
+        <div>
+            <a href="../excel/export_inventory_excel.php?<?php echo http_build_query($_GET); ?>" class="btn-add" style="background: #217346; margin-right: 5px;">📥 Xuất Excel</a>
+            
+            <a href="inventory_import.php" class="btn-add">+ Nhập Hàng</a>
+        </div>
     </div>
 
     <div class="dashboard-stats">

@@ -156,7 +156,14 @@ if ($result) {
     .pagination .disabled { color: #ccc; pointer-events: none; }
 </style>
 
-    <h2 class="title-order">Quản lý Dòng tiền & Hóa đơn</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 class="title-order" style="margin: 0;">Quản lý Dòng tiền & Hóa đơn</h2>
+        
+        <a href="../excel/export_orders_list_excel.php?<?php echo http_build_query($_GET); ?>" target="_blank" 
+        style="background: #217346; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            📥 Xuất Excel Báo Cáo
+        </a>
+    </div>
 
     <div class="dashboard-stats">
         <div class="stat-card card-revenue">
