@@ -26,12 +26,11 @@ if (empty($cart)) {
 
 try {
     // === BƯỚC 1: LẤY DANH SÁCH ID SẢN PHẨM ===
-    // (Vì key giỏ hàng giờ là chuỗi phức tạp '47_L_itda', ta cần tách lấy ID gốc để check kho)
     $product_ids = [];
     foreach ($cart as $key => $item) {
-        $product_ids[] = (int)$item['id']; // Lấy ID gốc từ object item
+        $product_ids[] = (int)$item['id'];
     }
-    $product_ids = array_unique($product_ids); // Loại bỏ trùng lặp
+    $product_ids = array_unique($product_ids);
 
     if (empty($product_ids)) throw new Exception("Giỏ hàng không hợp lệ.");
     
@@ -51,8 +50,7 @@ try {
     }
     mysqli_stmt_close($stmt_prices);
 
-    // === BƯỚC 3: KIỂM TRA TỒN KHO TỔNG HỢP ===
-    // (Vì 1 món có thể xuất hiện nhiều lần với size khác nhau, ta cần cộng dồn số lượng trước khi check kho)
+    // === BƯỚC 3: KIỂM TRA TỒN KHO TỔNG HỢP (MÓN CHÍNH) ===
     $total_qty_needed = []; 
     $total_amount = 0;
 
@@ -63,17 +61,15 @@ try {
         if (!isset($trusted_data[$pid])) throw new Exception("Sản phẩm không tồn tại: ID " . $pid);
         if ($qty <= 0) throw new Exception("Số lượng không hợp lệ.");
 
-        // Cộng dồn nhu cầu
+        // Cộng dồn nhu cầu món chính
         if (!isset($total_qty_needed[$pid])) $total_qty_needed[$pid] = 0;
         $total_qty_needed[$pid] += $qty;
 
-        // Tính tổng tiền (Dùng giá từ Frontend gửi lên vì giá này đã bao gồm Size/Topping)
-        // Lưu ý: Trong thực tế nên tính lại giá Size/Topping từ DB để bảo mật tuyệt đối, 
-        // nhưng ở mức độ đồ án này thì tin tưởng giá từ JS gửi lên là chấp nhận được.
+        // Tính tổng tiền
         $total_amount += $item['price'] * $qty;
     }
 
-    // Check kho tổng
+    // Check kho món chính
     foreach ($total_qty_needed as $pid => $needed) {
         $available = $trusted_data[$pid]['stock'];
         if ($needed > $available) {
@@ -94,39 +90,78 @@ try {
     $order_id = mysqli_insert_id($conn);
     mysqli_stmt_close($stmt_order);
 
-    // B. Lưu Chi Tiết & Trừ Kho & Ghi Lịch Sử
+    // B. Chuẩn bị các câu lệnh (Prepared Statements)
     $sql_detail = "INSERT INTO order_details (order_id, product_id, quantity, price, note) VALUES (?, ?, ?, ?, ?)";
     $stmt_detail = mysqli_prepare($conn, $sql_detail);
     
     $sql_update_stock = "UPDATE products SET stock = stock - ? WHERE id = ?";
     $stmt_update_stock = mysqli_prepare($conn, $sql_update_stock);
 
+    // --- MỚI: Câu lệnh tìm ID Topping theo tên ---
+    $sql_find_topping = "SELECT id FROM products WHERE name = ? LIMIT 1";
+    $stmt_find_topping = mysqli_prepare($conn, $sql_find_topping);
+    // ---------------------------------------------
+
     $today_str = date('Y-m-d H:i:s');
 
     foreach ($cart as $key => $item) {
         $pid = (int)$item['id'];
         $qty = (int)$item['quantity'];
-        $price = (int)$item['price']; // Giá đã gồm topping
-        $note = $item['note']; // Ghi chú: Size L, Ít đá...
+        $price = (int)$item['price'];
+        $note = isset($item['note']) ? $item['note'] : ''; 
 
-        // Lưu Order Detail
+        // 1. Lưu Order Detail
         mysqli_stmt_bind_param($stmt_detail, "iiiis", $order_id, $pid, $qty, $price, $note);
         if (!mysqli_stmt_execute($stmt_detail)) throw new Exception("Lỗi lưu chi tiết.");
         
-        // Trừ Kho
+        // 2. Trừ Kho Món Chính
         mysqli_stmt_bind_param($stmt_update_stock, "ii", $qty, $pid);
-        if (!mysqli_stmt_execute($stmt_update_stock)) throw new Exception("Lỗi trừ kho.");
+        if (!mysqli_stmt_execute($stmt_update_stock)) throw new Exception("Lỗi trừ kho món chính.");
 
-        // Ghi Lịch Sử Xuất Kho (QUAN TRỌNG)
-        // Số lượng xuất là số âm
+        // 3. Ghi Lịch Sử Món Chính
         $qty_export = -1 * $qty;
         $hist_note = "Bán hàng - Đơn #$order_id";
-        // Do query này đơn giản nên chạy trực tiếp
         mysqli_query($conn, "INSERT INTO inventory_history (product_id, quantity, note, created_at) VALUES ('$pid', '$qty_export', '$hist_note', '$today_str')");
+
+        // --- MỚI: XỬ LÝ TRỪ KHO TOPPING DỰA TRÊN NOTE ---
+        // Chuỗi note có dạng: "Size: M, Đá: 100%, Topping: Hạt hướng dương, Trân châu đen"
+        if (!empty($note) && strpos($note, 'Topping:') !== false) {
+            // Tách lấy phần sau chữ "Topping:"
+            $parts = explode('Topping:', $note);
+            if (isset($parts[1])) {
+                $topping_list_str = $parts[1]; // Ví dụ: " Hạt hướng dương, Trân châu đen"
+                $toppings = explode(',', $topping_list_str); // Tách thành mảng các tên
+
+                foreach ($toppings as $top_name) {
+                    $top_name = trim($top_name); // Xóa khoảng trắng thừa
+                    if (empty($top_name)) continue;
+
+                    // Tìm ID của topping trong CSDL
+                    mysqli_stmt_bind_param($stmt_find_topping, "s", $top_name);
+                    mysqli_stmt_execute($stmt_find_topping);
+                    $res_top = mysqli_stmt_get_result($stmt_find_topping);
+                    $row_top = mysqli_fetch_assoc($res_top);
+
+                    if ($row_top) {
+                        $tid = $row_top['id'];
+                        
+                        // Trừ kho Topping (Số lượng topping trừ theo số lượng ly nước)
+                        mysqli_stmt_bind_param($stmt_update_stock, "ii", $qty, $tid);
+                        mysqli_stmt_execute($stmt_update_stock);
+
+                        // Ghi lịch sử Topping
+                        $h_note_top = "Topping (kèm đơn #$order_id)";
+                        mysqli_query($conn, "INSERT INTO inventory_history (product_id, quantity, note, created_at) VALUES ('$tid', '$qty_export', '$h_note_top', '$today_str')");
+                    }
+                }
+            }
+        }
+        // ----------------------------------------------------
     }
 
     mysqli_stmt_close($stmt_detail);
     mysqli_stmt_close($stmt_update_stock);
+    mysqli_stmt_close($stmt_find_topping);
 
     // 5. COMMIT
     mysqli_commit($conn);

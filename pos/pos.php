@@ -32,10 +32,23 @@ $categories_list = [];
 
 if (mysqli_num_rows($result) > 0) {
     while ($row = mysqli_fetch_assoc($result)) {
-        $menu_data[$row['category_id']]['name'] = $row['category_name'];
-        $menu_data[$row['category_id']]['products'][] = $row;
-        if (!isset($categories_list[$row['category_id']])) {
-            $categories_list[$row['category_id']] = $row['category_name'];
+        // Lưu tồn kho
+        $stock_list[$row['id']] = (int)$row['stock'];
+
+        // Logic phân loại MỚI: Chỉ tìm chữ "topping"
+        $cat_name_lower = mb_strtolower($row['category_name'], 'UTF-8');
+        
+        // CHỈNH SỬA TẠI ĐÂY: Bỏ điều kiện kiểm tra chữ "thêm"
+        if (strpos($cat_name_lower, 'topping') !== false) {
+            $topping_list[] = $row; // Chỉ "Topping..." mới vào đây
+        } else {
+            // "Đồ ăn thêm", "Đồ ăn chơi"... sẽ chạy vào đây và hiện lên Menu
+            $menu_data[$row['category_id']]['name'] = $row['category_name'];
+            $menu_data[$row['category_id']]['products'][] = $row;
+            
+            if (!isset($categories_list[$row['category_id']])) {
+                $categories_list[$row['category_id']] = $row['category_name'];
+            }
         }
     }
 }
@@ -166,15 +179,10 @@ if (mysqli_num_rows($result) > 0) {
                 </div>
             </div>
 
-            <div class="opt-section">
-                <span class="opt-title">Thêm Topping / Đồ ăn kèm:</span>
-                <div id="topping-list">
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Trân châu đen" data-price="5000" onclick="updateTotalPrice()"> <span>Trân châu đen (+5k)</span></label>
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Thạch trái cây" data-price="5000" onclick="updateTotalPrice()"> <span>Thạch trái cây (+5k)</span></label>
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Pudding trứng" data-price="7000" onclick="updateTotalPrice()"> <span>Pudding trứng (+7k)</span></label>
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Bánh flan" data-price="10000" onclick="updateTotalPrice()"> <span>Bánh flan (+10k)</span></label>
-                    <label class="topping-item"><input type="checkbox" class="chk-topping" value="Hướng dương" data-price="15000" onclick="updateTotalPrice()"> <span>Hướng dương (+15k)</span></label>
-                </div>
+            <div class="opt-section" id="section-topping" style="display:none;">
+                <span class="opt-title">Topping / Ăn kèm:</span>
+                <div id="topping-list-container">
+                    </div>
             </div>
         </div>
         
@@ -191,6 +199,14 @@ if (mysqli_num_rows($result) > 0) {
 <div id="toast-container"></div>
 
 <script>
+    // 1. Danh sách tồn kho của tất cả sản phẩm
+    const stockData = <?php echo json_encode($stock_list); ?>;
+    
+    // 2. Danh sách Topping lấy từ DB
+    const toppingData = <?php echo json_encode($topping_list); ?>;
+</script>
+
+<script>
     let cart = {}; 
     let currentProd = {}; 
 
@@ -202,10 +218,33 @@ if (mysqli_num_rows($result) > 0) {
         document.getElementById('opt-product-base-price').innerText = basePrice.toLocaleString() + ' đ';
         document.getElementById('opt-product-img').src = img;
         
-        // Reset Inputs
+        // Reset Inputs cơ bản
         document.getElementsByName('opt_size').forEach(r => { if(r.value === 'M') r.checked = true; });
         document.getElementsByName('opt_ice').forEach(r => { if(r.value === '100%') r.checked = true; });
-        document.querySelectorAll('.chk-topping').forEach(c => c.checked = false);
+        
+        // --- PHẦN MỚI: RENDER TOPPING TỪ CSDL ---
+        const toppingContainer = document.getElementById('topping-list-container');
+        const toppingSection = document.getElementById('section-topping');
+        toppingContainer.innerHTML = ''; // Xóa cũ
+
+        // Kiểm tra xem có Topping nào trong CSDL không
+        if (toppingData && toppingData.length > 0) {
+            toppingSection.style.display = 'block';
+            toppingData.forEach(top => {
+                // Chỉ hiện topping còn hàng
+                if(top.stock > 0) {
+                    let html = `
+                        <label class="topping-item">
+                            <input type="checkbox" class="chk-topping" value="${top.name}" data-price="${top.price}" onclick="updateTotalPrice()"> 
+                            <span>${top.name} (+${parseInt(top.price).toLocaleString()}đ)</span>
+                        </label>`;
+                    toppingContainer.innerHTML += html;
+                }
+            });
+        } else {
+            // Nếu không có topping nào thì ẩn mục này đi
+            toppingSection.style.display = 'none';
+        }
 
         updateTotalPrice();
         document.getElementById('productOptionModal').style.display = 'flex';
@@ -228,6 +267,22 @@ if (mysqli_num_rows($result) > 0) {
 
     // --- THÊM VÀO GIỎ ---
     function confirmAddToCart(isBuyNow) {
+
+        let id = currentProd.id;
+        let maxStock = stockData[id] || 0;
+
+        let currentQtyInCart = 0;
+        for (let key in cart) {
+            if (cart[key].id == id) {
+                currentQtyInCart += cart[key].quantity;
+            }
+        }
+
+        if (currentQtyInCart + 1 > maxStock) {
+            showToast(`⚠️ Không thể thêm! Kho chỉ còn ${maxStock} món.`, 'error');
+            return; // Dừng hàm ngay lập tức, không cho thêm
+        }
+
         let size = document.querySelector('input[name="opt_size"]:checked').value;
         let ice = document.querySelector('input[name="opt_ice"]:checked').value;
         let toppingArr = [];
@@ -265,28 +320,47 @@ if (mysqli_num_rows($result) > 0) {
         body.innerHTML = '';
 
         if (Object.keys(cart).length === 0) {
-            body.innerHTML = `<div style="text-align:center;color:#999;padding-top:20px;">Giỏ hàng trống</div>`;
+            body.innerHTML = `<div style="text-align:center;color:#999;padding-top:20px;">
+                                <div style="font-size: 30px; margin-bottom: 10px;">🛒</div>
+                                Giỏ hàng trống
+                              </div>`;
             totalSpan.innerText = '0 đ';
             return;
         }
 
         for (let key in cart) {
             let item = cart[key];
-            total += item.price * item.quantity;
+            let itemTotal = item.price * item.quantity;
+            total += itemTotal;
+
+            // Xử lý chuỗi Note để hiển thị đẹp hơn
+            // Ví dụ note gốc: "Size: M, Đá: 50%, Topping: Kem muối, Thạch trà"
+            // Ta sẽ tách dòng Topping ra cho dễ nhìn
+            let displayNote = item.note;
+            if(displayNote.includes("Topping:")) {
+                // Thay thế dấu phẩy ngăn cách topping bằng thẻ xuống dòng <br> hoặc dấu chấm tròn
+                displayNote = displayNote.replace("Topping:", "<br><b>+ Topping:</b>");
+            }
+
             body.innerHTML += `
                 <div class="cart-item">
                     <div class="cart-item-left">
                         <div class="cart-item-name">${item.name}</div>
-                        ${item.note ? `<div class="cart-item-note">${item.note}</div>` : ''}
+                        <div class="cart-item-note" style="font-size: 13px; color: #666; margin-top: 4px; line-height: 1.4;">
+                            ${displayNote}
+                        </div>
                     </div>
+                    
                     <div class="cart-item-right">
                         <div class="cart-price">${item.price.toLocaleString()} đ</div>
+                        
                         <div class="cart-actions">
                             <button class="btn-sm-qty" onclick="adjustQty('${key}', -1)">-</button>
                             <span class="qty-display">${item.quantity}</span>
                             <button class="btn-sm-qty" onclick="adjustQty('${key}', 1)">+</button>
                         </div>
-                        <button class="btn-del-item" onclick="removeItem('${key}')">Xóa</button>
+                        
+                        <button class="btn-del-item" onclick="removeItem('${key}')">×</button>
                     </div>
                 </div>`;
         }
@@ -295,6 +369,18 @@ if (mysqli_num_rows($result) > 0) {
 
     function adjustQty(key, delta) {
         if (cart[key]) {
+            if (delta > 0) { // Chỉ kiểm tra khi bấm Tăng
+                let id = cart[key].id;
+                let maxStock = stockData[id] || 0;
+                
+                let currentQtyInCart = 0;
+                for (let k in cart) { if(cart[k].id == id) currentQtyInCart += cart[k].quantity; }
+
+                if (currentQtyInCart + 1 > maxStock) {
+                    showToast(`⚠️ Hết hàng! Kho chỉ còn ${maxStock}.`, 'error');
+                    return; // Chặn không cho tăng
+                }
+            }
             cart[key].quantity += delta;
             if (cart[key].quantity <= 0) delete cart[key];
             updateCartBadge(); renderCartModal();

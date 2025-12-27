@@ -5,7 +5,7 @@ require '../includes/header.php';
 require '../includes/admin_sidebar.php'; 
 echo '<div class="main-with-sidebar">';
 
-// 2. LẤY ID HÓA ĐƠN TỪ URL
+// 2. LẤY ID HÓA ĐƠN
 $order_id = (isset($_GET['id'])) ? (int)$_GET['id'] : 0;
 
 if ($order_id <= 0) {
@@ -15,7 +15,7 @@ if ($order_id <= 0) {
     exit();
 }
 
-// 3. LẤY THÔNG TIN CHUNG CỦA HÓA ĐƠN
+// 3. LẤY THÔNG TIN CHUNG
 $sql_order = "SELECT orders.id, orders.order_date, orders.total_amount, users.full_name
               FROM orders
               JOIN users ON orders.user_id = users.id
@@ -27,8 +27,9 @@ $result_order = mysqli_stmt_get_result($stmt_order);
 $order_info = mysqli_fetch_assoc($result_order);
 mysqli_stmt_close($stmt_order);
 
-// 4. LẤY CÁC MÓN HÀNG TRONG HÓA ĐƠN
-$sql_details = "SELECT products.name, products.image, order_details.quantity, order_details.price
+// 4. LẤY CHI TIẾT + GIÁ GỐC (SỬA LẠI THÀNH original_price)
+$sql_details = "SELECT products.name, products.image, products.original_price, 
+                       order_details.quantity, order_details.price
                 FROM order_details
                 JOIN products ON order_details.product_id = products.id
                 WHERE order_details.order_id = ?";
@@ -37,111 +38,158 @@ mysqli_stmt_bind_param($stmt_details, "i", $order_id);
 mysqli_stmt_execute($stmt_details);
 $result_details = mysqli_stmt_get_result($stmt_details);
 
+// --- TÍNH TOÁN TRƯỚC KHI HIỂN THỊ ---
+$items = [];
+$total_revenue = 0;
+$total_cost = 0;
+
+if ($result_details) {
+    while ($row = mysqli_fetch_assoc($result_details)) {
+        // Tính toán từng dòng (SỬA LẠI key mảng ở đây)
+        $row['line_revenue'] = $row['price'] * $row['quantity']; // Tiền bán
+        $row['line_cost']    = $row['original_price'] * $row['quantity']; // Tiền vốn (Đã sửa)
+        $row['line_profit']  = $row['line_revenue'] - $row['line_cost']; // Lợi nhuận
+        
+        // Cộng dồn tổng
+        $total_revenue += $row['line_revenue'];
+        $total_cost    += $row['line_cost'];
+        
+        $items[] = $row;
+    }
+}
+$total_profit = $total_revenue - $total_cost;
 ?>
 
 <style>
-    /* Wrapper căn giữa giống các trang khác */
-    .admin-wrapper {
-        max-width: 1000px; /* Nhỏ hơn chút cho gọn */
-        margin: 0 auto;
-        padding: 30px 20px;
-    }
-
+    .admin-wrapper { max-width: 1000px; margin: 0 auto; padding: 30px 20px; }
     h2 { color: #333; margin-bottom: 1.5rem; border-left: 5px solid #17a2b8; padding-left: 15px; }
-    
-    /* Nút quay lại */
-    .btn-back {
-        display: inline-block;
-        background-color: #6c757d;
-        color: white;
-        padding: 8px 15px;
-        text-decoration: none;
-        border-radius: 5px;
-        font-weight: bold;
-        margin-bottom: 20px;
-        font-size: 14px;
-    }
+    .btn-back { display: inline-block; background-color: #6c757d; color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-bottom: 20px; font-size: 14px; }
     .btn-back:hover { background-color: #5a6268; }
 
-    .order-summary {
-        background: #fff; padding: 25px; border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); margin-bottom: 30px;
-        border: 1px solid #eee;
-    }
-    .order-summary p { font-size: 16px; line-height: 1.8; margin: 0; color: #555; }
-    .order-summary strong { color: #333; min-width: 100px; display: inline-block; }
+    /* DASHBOARD MINI CHO ĐƠN HÀNG */
+    .order-stats { display: flex; gap: 15px; margin-bottom: 25px; }
+    .stat-box { flex: 1; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-top: 4px solid #ccc; }
+    .stat-box h4 { margin: 0 0 5px; font-size: 12px; text-transform: uppercase; color: #777; }
+    .stat-box .num { font-size: 20px; font-weight: bold; }
     
-    h3 { margin-bottom: 15px; color: #444; }
+    .box-rev { border-top-color: #28a745; }
+    .box-rev .num { color: #28a745; }
+    
+    .box-cost { border-top-color: #ffc107; }
+    .box-cost .num { color: #d39e00; }
+    
+    .box-profit { border-top-color: #6f42c1; }
+    .box-profit .num { color: #6f42c1; }
 
-    table { 
-        width: 100%; border-collapse: collapse; background-color: white;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 10px; overflow: hidden;
-    }
-    th, td { 
-        border-bottom: 1px solid #eee; padding: 15px; text-align: left; vertical-align: middle;
-    }
-    th { background-color: #f8f9fa; font-weight: 700; color: #555; text-transform: uppercase; font-size: 13px; }
-    tr:last-child td { border-bottom: none; }
+    /* TABLE STYLES */
+    .order-info-line { background: #e9ecef; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; color: #555; }
+    table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 10px; overflow: hidden; }
+    th, td { border-bottom: 1px solid #eee; padding: 12px 15px; text-align: left; vertical-align: middle; }
+    th { background-color: #f8f9fa; font-weight: 700; color: #555; text-transform: uppercase; font-size: 12px; }
+    img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
     
-    img { 
-        width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #eee;
-    }
-    
-    .total-row td {
-        background-color: #f9f9f9;
-        font-weight: bold;
-        font-size: 18px;
-        color: #d32f2f;
-        padding-top: 20px;
-        padding-bottom: 20px;
-    }
+    .text-right { text-align: right; }
+    .fw-bold { font-weight: bold; }
+    .text-green { color: #28a745; }
+    .text-purple { color: #6f42c1; }
+    .text-muted { color: #999; font-size: 0.9em; }
+
+    .total-row td { background-color: #ffffeb; font-weight: bold; font-size: 16px; padding-top: 15px; padding-bottom: 15px; border-top: 2px solid #ddd; }
 </style>
 
 <div class="admin-wrapper">
 
-    <a href="order_list.php" class="btn-back">← Quay lại danh sách hóa đơn</a>
+    <a href="order_list.php" class="btn-back">← Quay lại danh sách</a>
 
     <?php if ($order_info): ?>
-        <h2>Chi tiết Hóa đơn: #<?php echo $order_info['id']; ?></h2>
-
-        <div class="order-summary">
-            <p><strong>Ngày tạo:</strong> <?php echo date('d/m/Y H:i', strtotime($order_info['order_date'])); ?></p>
-            <p><strong>Nhân viên:</strong> <?php echo htmlspecialchars($order_info['full_name']); ?></p>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Chi tiết Hóa đơn: #<?php echo $order_info['id']; ?></h2>
+            <div style="font-style:italic; color:#666;">
+                Ngày tạo: <strong><?php echo date('d/m/Y H:i', strtotime($order_info['order_date'])); ?></strong>
+            </div>
         </div>
 
-        <h3>Danh sách món đã mua</h3>
+        <div class="order-info-line">
+            Người lập đơn: <strong><?php echo htmlspecialchars($order_info['full_name']); ?></strong>
+        </div>
+
+        <div class="order-stats">
+            <div class="stat-box box-rev">
+                <h4>Tổng tiền khách trả</h4>
+                <div class="num"><?php echo number_format($total_revenue); ?> ₫</div>
+            </div>
+            <div class="stat-box box-cost">
+                <h4>Tổng giá vốn (Gốc)</h4>
+                <div class="num"><?php echo number_format($total_cost); ?> ₫</div>
+            </div>
+            <div class="stat-box box-profit">
+                <h4>Lợi nhuận đơn này</h4>
+                <div class="num"><?php echo number_format($total_profit); ?> ₫</div>
+            </div>
+            <div class="stat-box" style="border-top-color: #17a2b8;">
+                <h4>Tỉ suất lợi nhuận</h4>
+                <div class="num" style="color: #17a2b8;">
+                    <?php echo ($total_revenue > 0) ? round(($total_profit / $total_revenue) * 100, 1) : 0; ?>%
+                </div>
+            </div>
+        </div>
+
+        <h3>Chi tiết sản phẩm</h3>
         <table>
             <thead>
                 <tr>
-                    <th>Ảnh</th>
+                    <th style="width: 60px;">Ảnh</th>
                     <th>Tên sản phẩm</th>
-                    <th>Số lượng</th>
-                    <th>Đơn giá</th>
-                    <th>Thành tiền</th>
+                    <th class="text-center">SL</th>
+                    <th class="text-right">Giá bán</th>
+                    <th class="text-right">Giá vốn</th> 
+                    <th class="text-right">Thành tiền</th>
+                    <th class="text-right">Lợi nhuận</th> 
                 </tr>
             </thead>
             <tbody>
-                <?php
-                if ($result_details && mysqli_num_rows($result_details) > 0) {
-                    while ($item = mysqli_fetch_assoc($result_details)) {
-                ?>
+                <?php if (!empty($items)): ?>
+                    <?php foreach ($items as $item): ?>
                     <tr>
                         <td>
-                            <img src="uploads/<?php echo htmlspecialchars($item['image']); ?>" alt="Img">
+                            <?php if($item['image']): ?>
+                                <img src="./uploads/<?php echo htmlspecialchars($item['image']); ?>" alt="Img">
+                            <?php else: ?>
+                                <img src="../assets/no-image.png" alt="No Img">
+                            <?php endif; ?>
                         </td>
-                        <td><?php echo htmlspecialchars($item['name']); ?></td>
-                        <td>x<?php echo $item['quantity']; ?></td>
-                        <td><?php echo number_format($item['price']); ?> ₫</td>
-                        <td><?php echo number_format($item['price'] * $item['quantity']); ?> ₫</td>
+                        <td>
+                            <strong><?php echo htmlspecialchars($item['name']); ?></strong>
+                        </td>
+                        <td class="text-center">x<?php echo $item['quantity']; ?></td>
+                        
+                        <td class="text-right">
+                            <?php echo number_format($item['price']); ?> ₫
+                        </td>
+                        
+                        <td class="text-right text-muted">
+                            <?php echo number_format($item['original_price']); ?> ₫
+                        </td>
+
+                        <td class="text-right fw-bold text-green">
+                            <?php echo number_format($item['line_revenue']); ?> ₫
+                        </td>
+                        
+                        <td class="text-right fw-bold text-purple">
+                            <?php echo number_format($item['line_profit']); ?> ₫
+                        </td>
                     </tr>
-                <?php
-                    } // Kết thúc vòng lặp
-                }
-                ?>
-                <tr class="total-row">
-                    <td colspan="4" style="text-align: right; color: #333;">TỔNG CỘNG:</td>
-                    <td><?php echo number_format($order_info['total_amount']); ?> ₫</td>
-                </tr>
+                    <?php endforeach; ?>
+
+                    <tr class="total-row">
+                        <td colspan="5" class="text-right" style="color: #333;">TỔNG CỘNG HÓA ĐƠN:</td>
+                        <td class="text-right text-green"><?php echo number_format($total_revenue); ?> ₫</td>
+                        <td class="text-right text-purple"><?php echo number_format($total_profit); ?> ₫</td>
+                    </tr>
+
+                <?php else: ?>
+                    <tr><td colspan="7">Không có sản phẩm nào trong đơn hàng này.</td></tr>
+                <?php endif; ?>
             </tbody>
         </table>
 
@@ -149,12 +197,12 @@ $result_details = mysqli_stmt_get_result($stmt_details);
         <h2>Không tìm thấy hóa đơn này.</h2>
     <?php endif; ?>
 
-</div> <?php
-// DỌN DẸP VÀ GỌI FOOTER
-if ($result_details) {
-    mysqli_free_result($result_details);
-}
+</div>
+
+<?php
+// DỌN DẸP
+if ($result_details) mysqli_free_result($result_details);
 mysqli_stmt_close($stmt_details);
 disconnect_db();
-echo '</div>';
+echo '</div>'; 
 ?>
