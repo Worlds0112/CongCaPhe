@@ -1,0 +1,134 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; }
+    .header { background: #217346; color: white; text-align: center; }
+    .subheader { background: #2E8B57; color: white; }
+    .section-title { background: #E3F2E8; font-weight: bold; color: #217346; }
+    .data-row:nth-child(even) { background: #F0F8F4; }
+    .import-row { background: #D4EDDA; }
+    .export-row { background: #F8D7DA; }
+    .total-row { background: #217346; color: white; font-weight: bold; }
+    td, th { padding: 10px; border: 1px solid #B8D4C3; }
+</style>
+</head>
+<body>
+<table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+    <!-- HEADER SECTION -->
+    <tr>
+        <td colspan="6" class="header" style="font-size: 24px; padding: 20px;">
+            <b>CONG CA PHE</b>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="6" class="subheader" style="font-size: 14px; padding: 10px;">
+            He thong Quan ly Kho hang - Nhom [Ten Nhom]
+        </td>
+    </tr>
+    
+    <!-- REPORT TITLE -->
+    <tr>
+        <td colspan="6" style="text-align: center; font-size: 18px; font-weight: bold; padding: 15px; background: #fff;">
+            LICH SU NHAP/XUAT KHO
+        </td>
+    </tr>
+    <tr>
+        <td colspan="6" style="text-align: center; font-size: 12px; color: #666; padding: 5px;">
+            Ky bao cao: Thang 12/2024
+        </td>
+    </tr>
+    
+    <!-- EMPTY ROW -->
+    <tr><td colspan="6" style="border: none; height: 10px;"></td></tr>
+    
+    <!-- TABLE HEADER -->
+    <tr class="section-title">
+        <th style="width: 50px;">STT</th>
+        <th style="width: 140px;">Thoi gian</th>
+        <th>Ten san pham</th>
+        <th style="width: 100px;">Loai</th>
+        <th style="width: 100px; text-align: right;">So luong</th>
+        <th>Ghi chu</th>
+    </tr>
+    
+    <!-- DATA ROWS -->
+    <tr class="import-row">
+        <td style="text-align: center;">1</td>
+        <td style="text-align: center;">01/12/2024<br><small>08:30:00</small></td>
+        <td>Bac xiu</td>
+        <td style="text-align: center; color: #155724;"><b>NHAP KHO</b></td>
+        <td style="text-align: right; color: #155724;"><b>+25</b></td>
+        <td>Nhap hang tu NCC ABC</td>
+    </tr>
+    <tr class="import-row">
+        <td style="text-align: center;">2</td>
+        <td style="text-align: center;">01/12/2024<br><small>08:35:00</small></td>
+        <td>Kem muoi</td>
+        <td style="text-align: center; color: #155724;"><b>NHAP KHO</b></td>
+        <td style="text-align: right; color: #155724;"><b>+50</b></td>
+        <td>Nhap topping</td>
+    </tr>
+    <tr class="export-row">
+        <td style="text-align: center;">3</td>
+        <td style="text-align: center;">01/12/2024<br><small>14:20:00</small></td>
+        <td>Cot dua ca phe</td>
+        <td style="text-align: center; color: #721C24;"><b>XUAT KHO</b></td>
+        <td style="text-align: right; color: #721C24;"><b>-3</b></td>
+        <td>Ban hang - Don #45</td>
+    </tr>
+    <tr class="export-row">
+        <td style="text-align: center;">4</td>
+        <td style="text-align: center;">02/12/2024<br><small>10:15:00</small></td>
+        <td>Nau kem muoi</td>
+        <td style="text-align: center; color: #721C24;"><b>XUAT KHO</b></td>
+        <td style="text-align: right; color: #721C24;"><b>-5</b></td>
+        <td>Ban hang - Don #52</td>
+    </tr>
+    <tr class="import-row">
+        <td style="text-align: center;">5</td>
+        <td style="text-align: center;">03/12/2024<br><small>09:00:00</small></td>
+        <td>Sua chua tuyet</td>
+        <td style="text-align: center; color: #155724;"><b>NHAP KHO</b></td>
+        <td style="text-align: right; color: #155724;"><b>+30</b></td>
+        <td>Nhap hang dinh ky</td>
+    </tr>
+    
+    <!-- SUMMARY SECTION -->
+    <tr><td colspan="6" style="border: none; height: 15px;"></td></tr>
+    
+    <tr class="total-row">
+        <td colspan="4" style="text-align: right;">TONG NHAP:</td>
+        <td style="text-align: right;">+105</td>
+        <td></td>
+    </tr>
+    <tr style="background: #F8D7DA; font-weight: bold;">
+        <td colspan="4" style="text-align: right; color: #721C24;">TONG XUAT:</td>
+        <td style="text-align: right; color: #721C24;">-8</td>
+        <td></td>
+    </tr>
+    
+    <!-- EMPTY ROW -->
+    <tr><td colspan="6" style="border: none; height: 20px;"></td></tr>
+    
+    <!-- SIGNATURE SECTION -->
+    <tr>
+        <td colspan="3" style="text-align: center; border: none; padding-top: 30px;">
+            <b>THU KHO</b><br><br><br><br>
+            (Ky, ghi ro ho ten)
+        </td>
+        <td colspan="3" style="text-align: center; border: none; padding-top: 30px;">
+            <b>QUAN LY</b><br><br><br><br>
+            (Ky, ghi ro ho ten)
+        </td>
+    </tr>
+    
+    <!-- FOOTER -->
+    <tr>
+        <td colspan="6" style="text-align: center; font-size: 11px; color: #888; border: none; padding-top: 20px;">
+            Bao cao duoc xuat tu he thong Quan ly Cong Ca Phe - Ngay in: 27/12/2024
+        </td>
+    </tr>
+</table>
+</body>
+</html>

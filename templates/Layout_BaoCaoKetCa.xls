@@ -1,0 +1,122 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; }
+    .header { background: #007BFF; color: white; text-align: center; }
+    .subheader { background: #0056B3; color: white; }
+    .section-title { background: #E7F1FF; font-weight: bold; color: #007BFF; }
+    .data-row:nth-child(even) { background: #F0F6FF; }
+    .highlight { background: #FFF3CD; }
+    .total-row { background: #007BFF; color: white; font-weight: bold; }
+    td, th { padding: 10px; border: 1px solid #B8D4FF; }
+</style>
+</head>
+<body>
+<table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+    <!-- HEADER SECTION -->
+    <tr>
+        <td colspan="5" class="header" style="font-size: 24px; padding: 20px;">
+            <b>CONG CA PHE</b>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="5" class="subheader" style="font-size: 14px; padding: 10px;">
+            Bao cao Ket ca & Ban giao - Nhom [Ten Nhom]
+        </td>
+    </tr>
+    
+    <!-- REPORT TITLE -->
+    <tr>
+        <td colspan="5" style="text-align: center; font-size: 18px; font-weight: bold; padding: 15px; background: #fff;">
+            BAO CAO KET CA NGAY 27/12/2024
+        </td>
+    </tr>
+    
+    <!-- SHIFT INFO -->
+    <tr>
+        <td colspan="5" style="background: #FFF3CD; padding: 15px;">
+            <b>Ca lam viec:</b> CA SANG (06:00 - 14:00)<br>
+            <b>Nhan vien:</b> Nguyen Van A<br>
+            <b>Thoi gian bao cao:</b> 14:05:32
+        </td>
+    </tr>
+    
+    <!-- EMPTY ROW -->
+    <tr><td colspan="5" style="border: none; height: 10px;"></td></tr>
+    
+    <!-- REVENUE COMPARISON -->
+    <tr class="section-title">
+        <td colspan="5" style="text-align: center; font-size: 14px;">
+            SO SANH DOANH THU
+        </td>
+    </tr>
+    
+    <tr>
+        <td colspan="2" style="text-align: right; font-weight: bold;">Doanh thu he thong (May tinh):</td>
+        <td colspan="3" style="text-align: left; font-size: 16px;"><b>2,450,000 VND</b></td>
+    </tr>
+    <tr>
+        <td colspan="2" style="text-align: right; font-weight: bold;">Tien thuc te (Ket tien):</td>
+        <td colspan="3" style="text-align: left; font-size: 16px;"><b>2,450,000 VND</b></td>
+    </tr>
+    <tr style="background: #D4EDDA;">
+        <td colspan="2" style="text-align: right; font-weight: bold; color: #155724;">Chenh lech:</td>
+        <td colspan="3" style="text-align: left; font-size: 16px; color: #155724;"><b>0 VND (KHOP)</b></td>
+    </tr>
+    
+    <!-- EMPTY ROW -->
+    <tr><td colspan="5" style="border: none; height: 15px;"></td></tr>
+    
+    <!-- INVENTORY NOTES -->
+    <tr class="section-title">
+        <td colspan="5" style="text-align: center; font-size: 14px;">
+            GHI CHU KHO HANG
+        </td>
+    </tr>
+    <tr>
+        <td colspan="5" style="min-height: 60px; vertical-align: top; padding: 15px;">
+            - Bac xiu: Con 15 ly<br>
+            - Kem muoi: Da het, can nhap them<br>
+            - Thach tra: Con 30 phan
+        </td>
+    </tr>
+    
+    <!-- GENERAL NOTES -->
+    <tr class="section-title">
+        <td colspan="5" style="text-align: center; font-size: 14px;">
+            GHI CHU CHUNG
+        </td>
+    </tr>
+    <tr>
+        <td colspan="5" style="min-height: 60px; vertical-align: top; padding: 15px;">
+            Ca sang hoat dong binh thuong, khong co su co.<br>
+            May pha ca phe so 2 can bao tri.
+        </td>
+    </tr>
+    
+    <!-- EMPTY ROW -->
+    <tr><td colspan="5" style="border: none; height: 20px;"></td></tr>
+    
+    <!-- SIGNATURE SECTION -->
+    <tr>
+        <td colspan="2" style="text-align: center; border: none; padding-top: 30px;">
+            <b>NHAN VIEN KET CA</b><br><br><br><br>
+            (Ky, ghi ro ho ten)
+        </td>
+        <td colspan="1" style="border: none;"></td>
+        <td colspan="2" style="text-align: center; border: none; padding-top: 30px;">
+            <b>NHAN VIEN NHAN CA</b><br><br><br><br>
+            (Ky, ghi ro ho ten)
+        </td>
+    </tr>
+    
+    <!-- FOOTER -->
+    <tr>
+        <td colspan="5" style="text-align: center; font-size: 11px; color: #888; border: none; padding-top: 20px;">
+            Bao cao duoc xuat tu he thong Quan ly Cong Ca Phe
+        </td>
+    </tr>
+</table>
+</body>
+</html>
