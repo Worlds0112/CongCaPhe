@@ -301,7 +301,7 @@ $result_data = mysqli_query($conn, $sql_data);
         Chưa có dữ liệu báo cáo nào phù hợp.
     </div>
 <?php endif; ?>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     function confirmDeleteShift(event, url, date) {
         event.preventDefault(); // Chặn chuyển trang ngay
