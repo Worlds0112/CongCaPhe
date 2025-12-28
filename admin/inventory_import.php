@@ -1,54 +1,69 @@
 <?php
-require '../includes/auth_admin.php';
-require '../includes/header.php';
-require '../includes/admin_sidebar.php';
+// =================================================================
+// 1. KẾT NỐI VÀ BẢO VỆ TRANG
+// =================================================================
+require '../includes/auth_admin.php'; // Kiểm tra đăng nhập và quyền hạn
+require '../includes/header.php';     // Gọi phần đầu trang (HTML head, CSS)
+require '../includes/admin_sidebar.php'; // Gọi thanh Menu bên trái
 
-$message = "";
+$message = ""; // Biến chứa thông báo (Thành công/Lỗi)
 
-// --- XỬ LÝ KHI BẤM NÚT "LƯU NHẬP KHO" ---
+// =================================================================
+// 2. XỬ LÝ KHI NGƯỜI DÙNG BẤM "LƯU & CẬP NHẬT" (POST)
+// =================================================================
 if (isset($_POST['btn_import'])) {
-    $products = $_POST['product_id'];       // Mảng ID món
-    $quantities = $_POST['quantity'];       // Mảng số lượng
-    $prices = $_POST['import_price'];       // Mảng giá nhập mới
-    $note = $_POST['note'];                 
+    
+    // Lấy dữ liệu mảng từ Form (Vì nhập nhiều dòng cùng lúc)
+    $products   = $_POST['product_id'];   // Mảng ID sản phẩm
+    $quantities = $_POST['quantity'];     // Mảng số lượng
+    $prices     = $_POST['import_price']; // Mảng giá nhập
+    $note       = $_POST['note'];         // Ghi chú chung cho phiếu nhập
 
+    // Bắt đầu Transaction (Giao dịch) để đảm bảo tính toàn vẹn dữ liệu
+    // Nếu có 1 lỗi xảy ra -> Rollback (Hủy toàn bộ)
     mysqli_begin_transaction($conn);
+    
     try {
+        $has_item = false; // Biến cờ kiểm tra xem có dòng nào hợp lệ không
+
+        // Duyệt qua từng dòng sản phẩm được nhập
         for ($i = 0; $i < count($products); $i++) {
-            $pid = (int)$products[$i];
-            $qty = (int)$quantities[$i];
-            $price = (float)$prices[$i]; // Giá vốn nhập vào lần này
+            $pid   = (int)$products[$i];
+            $qty   = (int)$quantities[$i];
+            $price = (float)$prices[$i];
 
+            // Chỉ xử lý nếu số lượng và ID sản phẩm hợp lệ
             if ($qty > 0 && $pid > 0) {
-                // 1. CẬP NHẬT KHO & GIÁ VỐN MỚI (original_price)
-                // Code này sẽ cập nhật giá vốn mới nhất vào bảng products
-                $sql_update = "UPDATE products 
-                               SET stock = stock + $qty, 
-                                   original_price = $price 
-                               WHERE id = $pid";
+                $has_item = true;
                 
-                if (!mysqli_query($conn, $sql_update)) {
-                    throw new Exception("Lỗi cập nhật sản phẩm ID: $pid");
-                }
+                // 1. Cập nhật Tồn kho (Cộng thêm) & Giá vốn (Cập nhật mới) trong bảng Products
+                $sql_update = "UPDATE products SET stock = stock + $qty, original_price = $price WHERE id = $pid";
+                if (!mysqli_query($conn, $sql_update)) throw new Exception("Lỗi cập nhật SP ID: $pid");
 
-                // 2. GHI LỊCH SỬ (Để sau này tính tổng chi tiêu)
-                $sql_history = "INSERT INTO inventory_history (product_id, quantity, import_price, note) 
-                                VALUES ('$pid', '$qty', '$price', '$note')";
-                
-                if (!mysqli_query($conn, $sql_history)) {
-                    throw new Exception("Lỗi ghi lịch sử.");
-                }
+                // 2. Ghi lịch sử nhập kho vào bảng Inventory History
+                $sql_history = "INSERT INTO inventory_history (product_id, quantity, import_price, note) VALUES ('$pid', '$qty', '$price', '$note')";
+                if (!mysqli_query($conn, $sql_history)) throw new Exception("Lỗi ghi lịch sử.");
             }
         }
-        mysqli_commit($conn);
-        $message = '<div class="alert success">✅ Nhập kho & Cập nhật giá vốn thành công!</div>';
+        
+        // Nếu có ít nhất 1 sản phẩm được nhập -> Commit (Lưu chính thức)
+        if($has_item) {
+            mysqli_commit($conn);
+            $message = '<div class="alert success">✅ Nhập kho & Cập nhật giá vốn thành công!</div>';
+        } else {
+            throw new Exception("Vui lòng chọn ít nhất 1 sản phẩm.");
+        }
+        
     } catch (Exception $e) {
+        // Nếu có lỗi -> Rollback (Hoàn tác mọi thay đổi)
         mysqli_rollback($conn);
         $message = '<div class="alert error">❌ Lỗi: ' . $e->getMessage() . '</div>';
     }
 }
 
-// Lấy danh sách sản phẩm (Lấy cả original_price cũ để hiển thị gợi ý)
+// =================================================================
+// 3. LẤY DANH SÁCH SẢN PHẨM (ĐỂ ĐỔ VÀO SELECT BOX)
+// =================================================================
 $q_prods = mysqli_query($conn, "SELECT id, name, stock, original_price FROM products ORDER BY name ASC");
 $prod_list = [];
 while ($row = mysqli_fetch_assoc($q_prods)) {
@@ -57,7 +72,6 @@ while ($row = mysqli_fetch_assoc($q_prods)) {
 ?>
 
 <script>
-    // Tạo biến JS chứa thông tin giá vốn hiện tại của từng món
     const productData = {};
     <?php foreach ($prod_list as $p): ?>
         productData[<?php echo $p['id']; ?>] = <?php echo $p['original_price'] ? $p['original_price'] : 0; ?>;
@@ -65,30 +79,38 @@ while ($row = mysqli_fetch_assoc($q_prods)) {
 </script>
 
 <div class="main-with-sidebar">
-    <div class="content-wrapper">
-        <h2 class="page-title">📥 Nhập Hàng & Cập Nhật Giá Vốn</h2>
+    <div class="admin-wrapper"> 
+        
+        <div class="header-row">
+            <h2 style="margin: 0; border-left-color: #28a745;">📥 Nhập Hàng & Cập Nhật Giá Vốn</h2>
+            <a href="inventory_history.php" class="btn-reset" style="width: auto; padding: 0 15px; font-size: 14px;">
+                Xem Lịch sử
+            </a>
+        </div>
+
         <?php echo $message; ?>
 
         <form method="POST" action="" id="importForm">
-            <div class="card">
-                <div class="form-group">
-                    <label>Ghi chú nhập hàng:</label>
-                    <input type="text" name="note" class="form-control" placeholder="VD: Nhập hàng ngày 25/12...">
+            <div class="card"> 
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Ghi chú nhập hàng:</label>
+                    <input type="text" name="note" class="form-control" style="width: 100%;" placeholder="VD: Nhập hàng ngày <?php echo date('d/m'); ?>...">
                 </div>
 
-                <table class="table" id="importTable">
+                <table id="importTable">
                     <thead>
                         <tr>
-                            <th style="width: 40%;">Sản phẩm</th>
-                            <th style="width: 20%;">Số lượng</th>
-                            <th style="width: 30%;">Giá vốn nhập vào (VNĐ)</th>
-                            <th style="width: 10%;">Xóa</th>
+                            <th style="width: 40%;">Sản phẩm </th>
+                            <th style="width: 15%;">Số lượng</th>
+                            <th style="width: 35%;">Giá vốn nhập (VNĐ)</th>
+                            <th style="width: 10%; text-align: center;">Xóa</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
                         <tr>
                             <td>
-                                <select name="product_id[]" class="form-control" onchange="fillPrice(this)" required>
+                                <select name="product_id[]" class="table-input" onchange="fillPrice(this)" required>
                                     <option value="">-- Chọn món --</option>
                                     <?php foreach ($prod_list as $p): ?>
                                         <option value="<?php echo $p['id']; ?>">
@@ -98,19 +120,19 @@ while ($row = mysqli_fetch_assoc($q_prods)) {
                                 </select>
                             </td>
                             <td>
-                                <input type="number" name="quantity[]" class="form-control" placeholder="SL" min="1" required>
+                                <input type="number" name="quantity[]" class="table-input" placeholder="SL" min="1" required>
                             </td>
                             <td>
-                                <input type="number" name="import_price[]" class="form-control price-input" placeholder="Giá nhập" min="0" required>
+                                <input type="number" name="import_price[]" class="table-input price-input" placeholder="Giá nhập" min="0" required>
                             </td>
                             <td style="text-align: center;">
-                                <button type="button" class="btn-del" onclick="removeRow(this)">×</button>
+                                <button type="button" class="btn-remove-row" onclick="removeRow(this)">×</button>
                             </td>
                         </tr>
                     </tbody>
                 </table>
 
-                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
                     <button type="button" class="btn-secondary" onclick="addRow()">+ Thêm dòng</button>
                     <button type="submit" name="btn_import" class="btn-primary">💾 Lưu & Cập nhật</button>
                 </div>
@@ -119,24 +141,8 @@ while ($row = mysqli_fetch_assoc($q_prods)) {
     </div>
 </div>
 
-<style>
-    .content-wrapper { max-width: 900px; margin: 0 auto; padding: 20px; }
-    .page-title { color: #5B743A; border-bottom: 2px solid #5B743A; padding-bottom: 10px; margin-bottom: 20px; }
-    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .table th { background: #f4f4f4; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
-    .table td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-    .btn-primary { background: #5B743A; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-secondary { background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-    .btn-del { background: #dc3545; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
-    .alert { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
-    .success { background: #d4edda; color: #155724; }
-    .error { background: #f8d7da; color: #721c24; }
-</style>
-
 <script>
-    // Hàm tự động điền giá vốn cũ khi chọn món
+    // Hàm tự động điền giá vốn khi chọn sản phẩm
     function fillPrice(selectElement) {
         const productId = selectElement.value;
         const row = selectElement.closest('tr');
@@ -149,27 +155,35 @@ while ($row = mysqli_fetch_assoc($q_prods)) {
         }
     }
 
+    // Hàm thêm dòng mới vào bảng
     function addRow() {
         const table = document.getElementById('tableBody');
         const firstRow = table.rows[0];
-        const newRow = firstRow.cloneNode(true);
+        const newRow = firstRow.cloneNode(true); // Clone dòng đầu tiên
         
-        // Reset giá trị input
+        // Reset giá trị input trong dòng mới
         const inputs = newRow.getElementsByTagName('input');
         for(let i=0; i<inputs.length; i++) { inputs[i].value = ''; }
         
-        // Reset select
+        // Reset select về mặc định
         newRow.getElementsByTagName('select')[0].value = '';
 
         table.appendChild(newRow);
     }
 
+    // Hàm xóa dòng
     function removeRow(btn) {
         const table = document.getElementById('tableBody');
+        // Chỉ cho xóa nếu còn nhiều hơn 1 dòng
         if (table.rows.length > 1) {
             btn.closest('tr').remove();
         } else {
-            alert("Phải nhập ít nhất 1 món!");
+            // Thông báo lỗi nếu cố xóa dòng cuối cùng
+            if(typeof Swal !== 'undefined') {
+                Swal.fire('Lỗi', 'Phải nhập ít nhất 1 món!', 'error');
+            } else {
+                alert("Phải nhập ít nhất 1 món!");
+            }
         }
     }
 </script>

@@ -1,28 +1,35 @@
 <?php
-// 1. BẢO VỆ TRANG
-require '../includes/auth_admin.php'; 
-require '../includes/header.php'; 
-require '../includes/admin_sidebar.php'; 
-echo '<div class="main-with-sidebar">';
+// =================================================================
+// 1. KẾT NỐI VÀ BẢO VỆ TRANG
+// =================================================================
+require '../includes/auth_admin.php'; // Kiểm tra đăng nhập và quyền hạn
+require '../includes/header.php';     // Gọi phần đầu trang (HTML head, CSS)
+require '../includes/admin_sidebar.php'; // Gọi thanh Menu bên trái
 
-// --- XỬ LÝ TÌM KIẾM & SẮP XẾP ---
+echo '<div class="main-with-sidebar">'; // Mở khung nội dung chính
+
+// =================================================================
+// 2. XỬ LÝ LỌC & TÌM KIẾM (SEARCH & FILTER)
+// =================================================================
 $search = "";
 $stock_filter = "all"; // Mặc định là xem tất cả
-$sort_by = "id";
-$order_dir = "DESC";
+$sort_by = "id";       // Mặc định sắp xếp theo ID
+$order_dir = "DESC";   // Mặc định giảm dần (Mới nhất lên đầu)
 
+// Khởi tạo câu truy vấn cơ bản
 $sql = "SELECT * FROM products WHERE 1=1"; 
 
-// 1. Lấy từ khóa tìm kiếm
+// A. Lọc theo từ khóa tìm kiếm
 if (isset($_GET['search'])) {
     $search = trim($_GET['search']);
     if (!empty($search)) {
         $s = mysqli_real_escape_string($conn, $search);
+        // Tìm theo ID hoặc Tên sản phẩm
         $sql .= " AND (id LIKE '%$s%' OR name LIKE '%$s%')";
     }
 }
 
-// 2. LỌC THEO SỐ LƯỢNG (MỚI THÊM)
+// B. Lọc theo tình trạng tồn kho
 if (isset($_GET['stock_filter'])) {
     $stock_filter = $_GET['stock_filter'];
     switch ($stock_filter) {
@@ -39,50 +46,32 @@ if (isset($_GET['stock_filter'])) {
             break;
     }
 }
-// Hỗ trợ link cũ (view=low) chuyển sang logic mới
+// Hỗ trợ link cũ (view=low) chuyển sang logic mới (Backward Compatibility)
 if (isset($_GET['view']) && $_GET['view'] == 'low') {
     $stock_filter = 'low';
     $sql .= " AND stock <= 5"; 
 }
 
-// 3. Sắp xếp
-$allowed_sort = ['id', 'name', 'price', 'stock'];
-if (isset($_GET['sort_by']) && in_array($_GET['sort_by'], $allowed_sort)) $sort_by = $_GET['sort_by'];
+// C. Xử lý sắp xếp (Sorting)
+$allowed_sort = ['id', 'name', 'price', 'stock']; // Danh sách cột cho phép sort
+if (isset($_GET['sort_by']) && in_array($_GET['sort_by'], $allowed_sort)) {
+    $sort_by = $_GET['sort_by'];
+}
 
-if (isset($_GET['order_dir']) && in_array(strtoupper($_GET['order_dir']), ['ASC', 'DESC'])) $order_dir = strtoupper($_GET['order_dir']);
+if (isset($_GET['order_dir']) && in_array(strtoupper($_GET['order_dir']), ['ASC', 'DESC'])) {
+    $order_dir = strtoupper($_GET['order_dir']);
+}
 
+// Hoàn thiện câu truy vấn
 $sql .= " ORDER BY $sort_by $order_dir";
 $result = mysqli_query($conn, $sql);
 ?>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-    /* * CHỈ GIỮ LẠI CÁC STYLE ĐẶC TRƯNG CHO TRẠNG THÁI KHÓA SẢN PHẨM 
-    * (Tất cả style khác như bảng, nút bấm, filter card đã chuyển sang admin_style.css) 
-    */
-    .row-locked { 
-        background-color: #f9f9f9; 
-    }
-    .row-locked td { 
-        color: #999; 
-    }
-    .row-locked img { 
-        filter: grayscale(100%); 
-        opacity: 0.7; 
-    }
-    
-    .badge-locked {
-        background: #6c757d; color: white; 
-        font-size: 10px; padding: 2px 6px; 
-        border-radius: 4px; font-weight: bold; margin-left: 5px;
-        vertical-align: middle; text-transform: uppercase;
-    }
-</style>
-
 <div class="admin-wrapper" style="margin: 0; max-width: none;">
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+    <div class="header-row">
         <h2 class="title-product" style="margin-bottom:0;">Quản lý sản phẩm</h2>
         <a href="product_add.php" class="btn-add">+ Thêm sản phẩm mới</a>
     </div>
@@ -137,9 +126,9 @@ $result = mysqli_query($conn, $sql);
             Đang xem: 
             <strong>
                 <?php 
-                    if($stock_filter=='out') echo '<span style="color:red">Sản phẩm hết hàng</span>';
-                    elseif($stock_filter=='low') echo '<span style="color:orange">Sản phẩm sắp hết</span>';
-                    elseif($stock_filter=='high') echo '<span style="color:green">Sản phẩm còn nhiều</span>';
+                    if($stock_filter=='out') echo '<span class="status-out">Sản phẩm hết hàng</span>';
+                    elseif($stock_filter=='low') echo '<span class="status-low">Sản phẩm sắp hết</span>';
+                    elseif($stock_filter=='high') echo '<span class="status-ok">Sản phẩm còn nhiều</span>';
                 ?>
             </strong>
         </div>
@@ -159,6 +148,7 @@ $result = mysqli_query($conn, $sql);
         </thead>
         <tbody>
             <?php while ($row = mysqli_fetch_assoc($result)) { 
+                // Kiểm tra trạng thái khóa
                 $is_locked = (isset($row['is_locked']) && $row['is_locked'] == 1);
             ?>
                 <tr class="<?php echo $is_locked ? 'row-locked' : ''; ?>">
@@ -167,48 +157,49 @@ $result = mysqli_query($conn, $sql);
                         <?php if (!empty($row['image'])): ?>
                             <img src="uploads/<?php echo htmlspecialchars($row['image']); ?>" alt="Img" style="<?php echo $is_locked ? 'filter:grayscale(100%);' : ''; ?>">
                         <?php else: ?>
-                            <span style="color:#ccc; font-size:12px;">No img</span>
+                            <span class="text-muted" style="font-size:12px;">No img</span>
                         <?php endif; ?>
                     </td>
                     <td>
                         <strong><?php echo htmlspecialchars($row['name']); ?></strong>
                         <?php if($is_locked) echo '<span class="badge-locked">TẠM NGƯNG</span>'; ?>
                     </td>
-                    <td style="color: #28a745; font-weight: bold;">
+                    <td class="text-green font-bold">
                         <?php echo number_format($row['price']); ?> ₫
                     </td>
                     <td>
                         <?php 
+                        // Hiển thị tồn kho với màu sắc cảnh báo
                         if($row['stock'] > 5) echo $row['stock']; 
-                        elseif($row['stock'] > 0) echo '<span style="color:orange; font-weight:bold;">'.$row['stock'].' (Sắp hết)</span>';
-                        else echo '<span style="color:red; font-weight:bold;">Hết hàng</span>';
+                        elseif($row['stock'] > 0) echo '<span class="status-low">'.$row['stock'].' (Sắp hết)</span>';
+                        else echo '<span class="status-out">Hết hàng</span>';
                         ?>
                     </td>
                     <td class="actions">
-                    <div style="display: flex; gap: 5px; justify-content: flex-start;">
-                        
-                        <?php if ($is_locked): ?>
-                            <a href="product_toggle.php?id=<?php echo $row['id']; ?>" class="btn-action btn-unlock" title="Mở bán lại">
-                                🔓 Mở lại
-                            </a>
-                        <?php else: ?>
-                            <a href="product_toggle.php?id=<?php echo $row['id']; ?>" class="btn-action btn-lock" title="Tạm ngưng món này">
-                                ⛔ Tạm ngưng
-                            </a>
-                        <?php endif; ?>
+                        <div class="action-buttons">
+                            
+                            <?php if ($is_locked): ?>
+                                <a href="product_toggle.php?id=<?php echo $row['id']; ?>" class="btn-action btn-unlock" title="Mở bán lại">
+                                    🔓 Mở
+                                </a>
+                            <?php else: ?>
+                                <a href="product_toggle.php?id=<?php echo $row['id']; ?>" class="btn-action btn-lock" title="Tạm ngưng món này">
+                                    ⛔ Khoá
+                                </a>
+                            <?php endif; ?>
 
-                        <a href="product_edit.php?id=<?php echo $row['id']; ?>" class="btn-action btn-edit">
-                            Sửa
-                        </a>
-                        
-                        <a href="product_delete.php?id=<?php echo $row['id']; ?>" 
-                           onclick="confirmDelete(event, this.href, '<?php echo htmlspecialchars(addslashes($row['name'])); ?>')"
-                           class="btn-action btn-delete">
-                           Xóa
-                        </a>
-                    </div>
-                </td>
-            </tr>
+                            <a href="product_edit.php?id=<?php echo $row['id']; ?>" class="btn-action btn-edit">
+                                Sửa
+                            </a>
+                            
+                            <a href="product_delete.php?id=<?php echo $row['id']; ?>" 
+                               onclick="confirmDelete(event, this.href, '<?php echo htmlspecialchars(addslashes($row['name'])); ?>')"
+                               class="btn-action btn-delete">
+                               Xóa
+                            </a>
+                        </div>
+                    </td>
+                </tr>
             <?php } ?>
         </tbody>
     </table>
@@ -234,6 +225,7 @@ $result = mysqli_query($conn, $sql);
             cancelButtonText: 'Hủy bỏ'
         }).then((result) => {
             if (result.isConfirmed) {
+                // Cảnh báo lần 2 để tránh xóa nhầm
                 Swal.fire({
                     title: 'CẢNH BÁO LẦN CUỐI!',
                     text: "Hành động này sẽ xóa vĩnh viễn dữ liệu và không thể khôi phục. Bạn có CHẮC CHẮN 100% không?",
@@ -254,6 +246,7 @@ $result = mysqli_query($conn, $sql);
 </script>
 
 <?php
+// Giải phóng bộ nhớ và đóng kết nối
 if ($result) mysqli_free_result($result);
 disconnect_db();
 echo '</div>'; // Đóng main-with-sidebar

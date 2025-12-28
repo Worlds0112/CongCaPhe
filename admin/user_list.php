@@ -52,29 +52,10 @@ $result = mysqli_query($conn, $sql);
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-    /* * CHỈ GIỮ LẠI CÁC STYLE GHI ĐÈ MÀU TÍM ĐẶC TRƯNG CỦA TRANG USER * */
-    h2 { border-left-color: #6f42c1; }
-
-    /* Nút thêm mới */
-    .btn-add { background-color: #6f42c1; }
-    .btn-add:hover { background-color: #59359a; }
-
-    /* Màu focus cho input/select (Ghi đè biến --filter-focus-color trong .form-control) */
-    .form-control:focus {
-        border-color: #6f42c1; 
-        box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
-    }
-    
-    /* Nút Lọc */
-    .btn-filter { background: #6f42c1; } 
-    .btn-filter:hover { background: #59359a; } 
-</style>
-
 <div class="admin-wrapper">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="header-row">
         <h2 class="title-user" style="margin-bottom:0">Quản lý Tài khoản</h2>
-        <a href="user_add.php" class="btn-add">+ Thêm nhân viên mới</a>
+        <a href="user_add.php" class="btn-add-user">+ Thêm nhân viên mới</a>
     </div>
 
     <div class="filter-card">
@@ -82,12 +63,12 @@ $result = mysqli_query($conn, $sql);
             
             <div class="filter-group">
                 <label>Tên / Username</label>
-                <input type="text" name="search" class="form-control" placeholder="Nhập từ khóa..." value="<?php echo htmlspecialchars($search); ?>">
+                <input type="text" name="search" class="form-control user-input" placeholder="Nhập từ khóa..." value="<?php echo htmlspecialchars($search); ?>">
             </div>
 
             <div class="filter-group">
                 <label>Vai trò</label>
-                <select name="role" class="form-control">
+                <select name="role" class="form-control user-input">
                     <option value="all" <?php if ($role_filter == 'all') echo 'selected'; ?>>Tất cả</option>
                     <option value="admin" <?php if ($role_filter == 'admin') echo 'selected'; ?>>Quản trị (Admin)</option>
                     <option value="staff" <?php if ($role_filter == 'staff') echo 'selected'; ?>>Nhân viên</option>
@@ -96,7 +77,7 @@ $result = mysqli_query($conn, $sql);
 
             <div class="filter-group">
                 <label>Ca làm việc</label>
-                <select name="shift" class="form-control">
+                <select name="shift" class="form-control user-input">
                     <option value="all" <?php if ($shift_filter == 'all') echo 'selected'; ?>>Tất cả ca</option>
                     <option value="sang" <?php if ($shift_filter == 'sang') echo 'selected'; ?>>Ca Sáng</option>
                     <option value="chieu" <?php if ($shift_filter == 'chieu') echo 'selected'; ?>>Ca Chiều</option>
@@ -106,7 +87,7 @@ $result = mysqli_query($conn, $sql);
 
             <div class="filter-group">
                 <label>Sắp xếp theo</label>
-                <select name="sort_by" class="form-control">
+                <select name="sort_by" class="form-control user-input">
                     <option value="role" <?php if ($sort_by == 'role') echo 'selected'; ?>>Vai trò</option>
                     <option value="full_name" <?php if ($sort_by == 'full_name') echo 'selected'; ?>>Tên nhân viên</option>
                     <option value="username" <?php if ($sort_by == 'username') echo 'selected'; ?>>Username</option>
@@ -114,12 +95,12 @@ $result = mysqli_query($conn, $sql);
             </div>
 
             <div class="filter-group action-group" style="flex-direction: row; align-items: flex-end;">
-                 <select name="order_dir" class="form-control" style="min-width: 100px; margin-right: 5px;">
+                 <select name="order_dir" class="form-control user-input" style="min-width: 100px; margin-right: 5px;">
                     <option value="ASC" <?php if ($order_dir == 'ASC') echo 'selected'; ?>>A-Z</option>
                     <option value="DESC" <?php if ($order_dir == 'DESC') echo 'selected'; ?>>Z-A</option>
                 </select>
 
-                <button type="submit" class="btn-filter">🔍 Lọc</button>
+                <button type="submit" class="btn-filter-user">🔍 Lọc</button>
                 <?php if (!empty($search) || $role_filter != 'all' || $shift_filter != 'all' || $sort_by != 'role'): ?>
                     <a href="user_list.php" class="btn-reset" title="Đặt lại">↺</a>
                 <?php endif; ?>
@@ -131,8 +112,8 @@ $result = mysqli_query($conn, $sql);
         <div style="margin-bottom: 15px; font-style: italic; color: #555; padding-left: 5px;">
             Đang lọc: 
             <?php 
-                if($role_filter == 'admin') echo '<span style="color:#6f42c1; font-weight:bold">Quản trị viên</span> ';
-                elseif($role_filter == 'staff') echo '<span style="color:#0f5132; font-weight:bold">Nhân viên</span> ';
+                if($role_filter == 'admin') echo '<span class="text-purple">Quản trị viên</span> ';
+                elseif($role_filter == 'staff') echo '<span class="text-green">Nhân viên</span> ';
                 
                 if($shift_filter != 'all') echo " - Ca " . ucfirst($shift_filter);
             ?>
@@ -149,7 +130,7 @@ $result = mysqli_query($conn, $sql);
                     <th>Vai trò</th>
                     <th>Ca làm việc</th>
                     <th>Mã bảo mật</th>
-                    <th style="text-align: center;">Hành động</th>
+                    <th class="text-center">Hành động</th>
                 </tr>
             </thead>
             <tbody>
@@ -168,15 +149,15 @@ $result = mysqli_query($conn, $sql);
                         <td>
                             <?php
                             switch ($row['shift']) {
-                                case 'sang': echo '<span style="color:green; font-weight:bold;">Ca Sáng</span>'; break;
-                                case 'chieu': echo '<span style="color:orange; font-weight:bold;">Ca Chiều</span>'; break;
-                                case 'toi': echo '<span style="color:purple; font-weight:bold;">Ca Tối</span>'; break;
+                                case 'sang': echo '<span class="text-green">Ca Sáng</span>'; break;
+                                case 'chieu': echo '<span class="text-orange">Ca Chiều</span>'; break;
+                                case 'toi': echo '<span class="text-purple">Ca Tối</span>'; break;
                                 default: echo 'Full time';
                             }
                             ?>
                         </td>
                         <td><?php echo htmlspecialchars($row['security_code']); ?></td>
-                        <td style="text-align: center;">
+                        <td class="text-center">
                             <a href="user_view.php?id=<?php echo $row['id']; ?>" class="btn-action btn-view">
                                 👤 Xem
                             </a>
@@ -200,9 +181,9 @@ $result = mysqli_query($conn, $sql);
             </tbody>
         </table>
     <?php else: ?>
-        <p style="text-align:center; color:#999; margin-top: 30px; background: white; padding: 20px; border-radius: 8px;">
+        <div style="text-align:center; color:#999; margin-top: 30px; background: white; padding: 20px; border-radius: 8px;">
             Không tìm thấy nhân viên nào phù hợp với bộ lọc.
-        </p>
+        </div>
     <?php endif; ?>
 </div>
 

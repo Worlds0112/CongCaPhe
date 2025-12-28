@@ -1,34 +1,47 @@
 <?php
-require '../includes/auth_admin.php'; 
-require '../includes/header.php'; 
-require '../includes/admin_sidebar.php'; 
+// =================================================================
+// 1. KẾT NỐI VÀ BẢO VỆ TRANG
+// =================================================================
+require '../includes/auth_admin.php'; // Kiểm tra đăng nhập và quyền hạn
+require '../includes/header.php';     // Gọi phần đầu trang (HTML head, CSS)
+require '../includes/admin_sidebar.php'; // Gọi thanh Menu bên trái
 
-echo '<div class="main-with-sidebar">';
+echo '<div class="main-with-sidebar">'; // Mở khung nội dung chính
 echo '<div class="admin-wrapper" style="margin: 0; max-width: none;">';
 
-// Biến lưu trạng thái thông báo
-$toast_message = "";
-$toast_type = ""; 
+// =================================================================
+// 2. KHỞI TẠO BIẾN
+// =================================================================
+$toast_message = ""; // Nội dung thông báo
+$toast_type = "";    // Loại thông báo (success/error)
 
-// 1. LẤY ID SẢN PHẨM & KIỂM TRA TỒN TẠI
+// =================================================================
+// 3. LẤY DỮ LIỆU SẢN PHẨM CŨ (ĐỂ HIỂN THỊ LÊN FORM)
+// =================================================================
 if (isset($_GET['id'])) {
     $id = (int)$_GET['id'];
+    // Truy vấn thông tin sản phẩm theo ID
     $sql = "SELECT * FROM products WHERE id = $id";
     $result = mysqli_query($conn, $sql);
     $product = mysqli_fetch_assoc($result);
 
+    // Nếu không tìm thấy sản phẩm -> Chuyển hướng về danh sách
     if (!$product) {
         echo "<script>alert('Sản phẩm không tồn tại!'); window.location.href='product_list.php';</script>";
         exit();
     }
 } else {
+    // Nếu không có ID trên URL -> Chuyển hướng về danh sách
     header("Location: product_list.php");
     exit();
 }
 
-// 2. XỬ LÝ POST
+// =================================================================
+// 4. XỬ LÝ KHI NGƯỜI DÙNG BẤM "LƯU THAY ĐỔI" (POST)
+// =================================================================
 if (isset($_POST['update_product'])) {
-    // Lấy dữ liệu & Clean
+    
+    // --- A. LẤY DỮ LIỆU TỪ FORM ---
     $name = trim($_POST['name']);
     $category_id = (int)$_POST['category_id'];
     $price = $_POST['price'];
@@ -36,7 +49,7 @@ if (isset($_POST['update_product'])) {
     $stock_new = $_POST['stock']; 
     $description = trim($_POST['description']);
 
-    // --- VALIDATION ---
+    // --- B. VALIDATION (KIỂM TRA DỮ LIỆU) ---
     if (empty($name)) {
         $toast_message = "Tên sản phẩm không được để trống.";
         $toast_type = "error";
@@ -47,28 +60,33 @@ if (isset($_POST['update_product'])) {
         $toast_message = "Tồn kho không được âm.";
         $toast_type = "error";
     } else {
-        // --- NẾU KHÔNG CÓ LỖI NHẬP LIỆU ---
         
-        // 1. Xử lý ảnh (Chỉ khi có upload mới)
-        $image_update_query = "";
-        $upload_ok = true;
+        // --- C. XỬ LÝ ẢNH (NẾU CÓ UPLOAD MỚI) ---
+        $image_update_query = ""; // Chuỗi query cập nhật ảnh (mặc định rỗng)
+        $upload_ok = true;        // Cờ kiểm tra upload
 
         if (!empty($_FILES['image']['name'])) {
             $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
             
+            // Kiểm tra định dạng ảnh
             if (!in_array($ext, $allowed)) {
                 $toast_message = "Chỉ chấp nhận file ảnh (JPG, PNG...).";
                 $toast_type = "error";
                 $upload_ok = false;
-            } elseif ($_FILES['image']['size'] > 5000000) {
+            } 
+            // Kiểm tra dung lượng ảnh (Max 5MB)
+            elseif ($_FILES['image']['size'] > 5000000) {
                 $toast_message = "File ảnh quá lớn (>5MB).";
                 $toast_type = "error";
                 $upload_ok = false;
             } else {
+                // Upload ảnh
                 $target_dir = "uploads/";
-                $new_filename = uniqid() . '.' . $ext;
+                $new_filename = uniqid() . '.' . $ext; // Đổi tên file ngẫu nhiên
+                
                 if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_dir . $new_filename)) {
+                    // Nếu upload thành công -> Tạo chuỗi query cập nhật ảnh
                     $image_update_query = ", image = '$new_filename'";
                 } else {
                     $toast_message = "Lỗi khi lưu file ảnh.";
@@ -78,29 +96,35 @@ if (isset($_POST['update_product'])) {
             }
         }
 
-        // 2. Update Database (Nếu ảnh OK hoặc không đổi ảnh)
+        // --- D. CẬP NHẬT DATABASE (NẾU KHÔNG CÓ LỖI ẢNH) ---
         if ($upload_ok) {
             $name = mysqli_real_escape_string($conn, $name);
             $description = mysqli_real_escape_string($conn, $description);
 
-            // GHI LỊCH SỬ KHO (Nếu số lượng thay đổi)
+            // [QUAN TRỌNG] GHI LỊCH SỬ KHO NẾU SỐ LƯỢNG THAY ĐỔI
             $stock_old = (int)$product['stock'];
-            $diff = (int)$stock_new - $stock_old;
+            $diff = (int)$stock_new - $stock_old; // Chênh lệch (Mới - Cũ)
 
             if ($diff != 0) {
                 $note = "Cập nhật thủ công (Sửa SP)";
-                // Nếu $diff > 0 là nhập, < 0 là xuất (hoặc điều chỉnh giảm)
+                // Thêm vào bảng lịch sử kho
                 $sql_hist = "INSERT INTO inventory_history (product_id, quantity, note) VALUES ('$id', '$diff', '$note')";
                 mysqli_query($conn, $sql_hist);
             }
 
-            $sql_update = "UPDATE products SET name='$name', category_id='$category_id', price='$price', original_price='$original_price', stock='$stock_new', description='$description' $image_update_query WHERE id=$id";
+            // Câu lệnh SQL cập nhật sản phẩm
+            $sql_update = "UPDATE products 
+                           SET name='$name', category_id='$category_id', price='$price', 
+                               original_price='$original_price', stock='$stock_new', 
+                               description='$description' 
+                               $image_update_query 
+                           WHERE id=$id";
 
             if (mysqli_query($conn, $sql_update)) {
                 $toast_message = "Cập nhật thành công!";
                 $toast_type = "success";
                 
-                // Refresh dữ liệu biến $product để form hiển thị cái mới nhất
+                // Cập nhật lại biến $product để hiển thị dữ liệu mới nhất lên form ngay lập tức
                 $product['name'] = $name;
                 $product['category_id'] = $category_id;
                 $product['price'] = $price;
@@ -117,118 +141,105 @@ if (isset($_POST['update_product'])) {
 }
 ?>
 
-<style>
-    .form-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 800px; }
-    .form-group { margin-bottom: 20px; }
-    .form-label { font-weight: bold; margin-bottom: 8px; display: block; color: #555; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; }
-    .form-control:focus { border-color: #28a745; }
-    .btn-submit { background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    .btn-cancel { background: #6c757d; color: white; padding: 12px 25px; border: none; border-radius: 6px; font-weight: bold; text-decoration: none; margin-left: 10px; }
-    .form-row { display: flex; gap: 20px; }
-    .col { flex: 1; }
-    .current-img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px; }
+<div class="header-row">
+        <h2 class="title-product" style="margin: 0;">Sửa sản phẩm: <?php echo htmlspecialchars($product['name']); ?></h2>
+        <a href="product_list.php" class="btn-back">← Quay lại danh sách</a>
+    </div>
 
-    /* TOAST NOTIFICATION STYLES */
-    #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-    .toast {
-        background: #333; color: white; padding: 12px 25px; border-radius: 8px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500;
-        display: flex; align-items: center; gap: 10px; opacity: 0; transform: translateY(20px); transition: all 0.4s ease; border-left: 5px solid transparent;
-    }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.success { background: white; color: #333; border-left-color: #28a745; }
-    .toast.error { background: white; color: #333; border-left-color: #dc3545; }
-    .toast-icon { font-size: 18px; }
-</style>
-
-<h2 class="title-product">Sửa sản phẩm: <?php echo htmlspecialchars($product['name']); ?></h2>
-
-<div class="form-container">
-    <form method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label class="form-label">Tên sản phẩm</label>
-            <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($product['name']); ?>" required>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Danh mục</label>
-            <select name="category_id" class="form-control">
-                <?php
-                $cat_res = mysqli_query($conn, "SELECT * FROM categories");
-                while ($cat = mysqli_fetch_assoc($cat_res)) {
-                    $selected = ($cat['id'] == $product['category_id']) ? 'selected' : '';
-                    echo "<option value='{$cat['id']}' $selected>{$cat['name']}</option>";
-                }
-                ?>
-            </select>
-        </div>
-
-        <div class="form-row">
-            <div class="col form-group">
-                <label class="form-label">Giá bán</label>
-                <input type="number" name="price" class="form-control" value="<?php echo $product['price']; ?>" required min="0">
+    <div class="form-container">
+        <form method="POST" enctype="multipart/form-data">
+            
+            <div class="form-group">
+                <label class="form-label">Tên sản phẩm</label>
+                <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($product['name']); ?>" required>
             </div>
-            <div class="col form-group">
-                <label class="form-label">Giá vốn</label>
-                <input type="number" name="original_price" class="form-control" value="<?php echo isset($product['original_price']) ? $product['original_price'] : 0; ?>" min="0">
+
+            <div class="form-group">
+                <label class="form-label">Danh mục</label>
+                <select name="category_id" class="form-control">
+                    <?php
+                    // Lấy danh sách danh mục để đổ vào select box
+                    $cat_res = mysqli_query($conn, "SELECT * FROM categories");
+                    while ($cat = mysqli_fetch_assoc($cat_res)) {
+                        // Kiểm tra nếu ID danh mục trùng với sản phẩm thì chọn (selected)
+                        $selected = ($cat['id'] == $product['category_id']) ? 'selected' : '';
+                        echo "<option value='{$cat['id']}' $selected>{$cat['name']}</option>";
+                    }
+                    ?>
+                </select>
             </div>
-        </div>
 
-        <div class="form-row">
-            <div class="col form-group">
-                <label class="form-label">Tồn kho</label>
-                <input type="number" name="stock" class="form-control" value="<?php echo $product['stock']; ?>" required min="0">
-                <small style="color: #d63384;">* Thay đổi số lượng tại đây sẽ được ghi vào lịch sử kho.</small>
+            <div class="form-row">
+                <div class="col form-group">
+                    <label class="form-label">Giá bán</label>
+                    <input type="number" name="price" class="form-control" value="<?php echo $product['price']; ?>" required min="0">
+                </div>
+                <div class="col form-group">
+                    <label class="form-label">Giá vốn</label>
+                    <input type="number" name="original_price" class="form-control" value="<?php echo isset($product['original_price']) ? $product['original_price'] : 0; ?>" min="0">
+                </div>
             </div>
-        </div>
 
-        <div class="form-group">
-            <label class="form-label">Hình ảnh (Chỉ chọn nếu muốn thay đổi)</label>
-            <input type="file" name="image" class="form-control" accept="image/*">
-            <?php if (!empty($product['image'])): ?>
-                <img src="uploads/<?php echo $product['image']; ?>" class="current-img" alt="Img">
-            <?php endif; ?>
-        </div>
+            <div class="form-row">
+                <div class="col form-group">
+                    <label class="form-label">Tồn kho</label>
+                    <input type="number" name="stock" class="form-control" value="<?php echo $product['stock']; ?>" required min="0">
+                    <div class="text-hint" style="color: #d63384;">* Thay đổi số lượng tại đây sẽ được ghi vào lịch sử kho.</div>
+                </div>
+            </div>
 
-        <div class="form-group">
-            <label class="form-label">Mô tả</label>
-            <textarea name="description" class="form-control" rows="3"><?php echo htmlspecialchars($product['description'] ?? ''); ?></textarea>
-        </div>
+            <div class="form-group">
+                <label class="form-label">Hình ảnh (Chỉ chọn nếu muốn thay đổi)</label>
+                <input type="file" name="image" class="form-control" accept="image/*">
+                <?php if (!empty($product['image'])): ?>
+                    <img src="uploads/<?php echo $product['image']; ?>" class="current-img" alt="Img">
+                <?php endif; ?>
+            </div>
 
-        <div style="margin-top: 20px;">
-            <button type="submit" name="update_product" class="btn-submit">Lưu thay đổi</button>
-            <a href="product_list.php" class="btn-cancel">Quay lại</a>
-        </div>
-    </form>
-</div>
+            <div class="form-group">
+                <label class="form-label">Mô tả</label>
+                <textarea name="description" class="form-control" rows="3"><?php echo htmlspecialchars($product['description'] ?? ''); ?></textarea>
+            </div>
 
-<div id="toast-container"></div>
+            <div style="margin-top: 20px;">
+                <button type="submit" name="update_product" class="btn-save">Lưu thay đổi</button>
+            </div>
+        </form>
+    </div>
 
-<script>
-    function showToast(message, type = 'success') {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        
-        let icon = type === 'success' ? '✅' : '⚠️';
-        let colorClass = type;
+    <div id="toast-container"></div>
 
-        toast.className = `toast ${colorClass}`;
-        toast.innerHTML = `<span class="toast-icon">${icon}</span> <span>${message}</span>`;
-        
-        container.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 400);
-        }, 3000);
-    }
+    <script>
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Icon và màu sắc dựa trên loại thông báo
+            let icon = type === 'success' ? '✅' : '⚠️';
+            let colorClass = type; // class 'success' hoặc 'error' trong CSS
 
-    <?php if (!empty($toast_message)): ?>
-        showToast("<?php echo $toast_message; ?>", "<?php echo $toast_type; ?>");
-    <?php endif; ?>
-</script>
+            toast.className = `toast ${colorClass}`;
+            toast.innerHTML = `<span class="toast-icon">${icon}</span> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Hiệu ứng hiện lên
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // Tự động ẩn sau 3 giây
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400); // Xóa khỏi DOM sau khi ẩn
+            }, 3000);
+        }
+
+        // Nếu có thông báo từ PHP -> Gọi hàm JS để hiển thị
+        <?php if (!empty($toast_message)): ?>
+            showToast("<?php echo $toast_message; ?>", "<?php echo $toast_type; ?>");
+        <?php endif; ?>
+    </script>
 
 <?php 
+// Đóng các thẻ div wrapper
 echo '</div></div>'; 
 ?>

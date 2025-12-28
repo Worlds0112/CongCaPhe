@@ -1,25 +1,34 @@
 <?php
-// 1. BẢO VỆ TRANG
-require '../includes/auth_admin.php'; 
-require '../includes/header.php'; 
-require '../includes/admin_sidebar.php'; 
-echo '<div class="main-with-sidebar">';
+// =================================================================
+// 1. KẾT NỐI VÀ BẢO VỆ TRANG
+// =================================================================
+require '../includes/auth_admin.php'; // Kiểm tra đăng nhập và quyền hạn
+require '../includes/header.php';     // Gọi phần đầu trang (HTML head, CSS)
+require '../includes/admin_sidebar.php'; // Gọi thanh Menu bên trái
 
-// 2. LẤY ID HÓA ĐƠN
+echo '<div class="main-with-sidebar">'; // Mở khung nội dung chính
+
+// =================================================================
+// 2. LẤY ID HÓA ĐƠN TỪ URL
+// =================================================================
 $order_id = (isset($_GET['id'])) ? (int)$_GET['id'] : 0;
 
+// Nếu ID không hợp lệ thì báo lỗi và dừng lại
 if ($order_id <= 0) {
-    echo "<div class='admin-wrapper'><h1>ID hóa đơn không hợp lệ.</h1></div>";
+    echo "<div class='admin-wrapper'><div class='alert error'>ID hóa đơn không hợp lệ.</div></div>";
     require '../includes/footer.php';
     disconnect_db();
     exit();
 }
 
-// 3. LẤY THÔNG TIN CHUNG
+// =================================================================
+// 3. LẤY THÔNG TIN CHUNG CỦA HÓA ĐƠN (QUERY 1)
+// =================================================================
 $sql_order = "SELECT orders.id, orders.order_date, orders.total_amount, users.full_name
               FROM orders
               JOIN users ON orders.user_id = users.id
               WHERE orders.id = ?";
+// Sử dụng Prepared Statement để tránh SQL Injection
 $stmt_order = mysqli_prepare($conn, $sql_order);
 mysqli_stmt_bind_param($stmt_order, "i", $order_id);
 mysqli_stmt_execute($stmt_order);
@@ -27,7 +36,9 @@ $result_order = mysqli_stmt_get_result($stmt_order);
 $order_info = mysqli_fetch_assoc($result_order);
 mysqli_stmt_close($stmt_order);
 
-// 4. LẤY CHI TIẾT + GIÁ GỐC (SỬA LẠI THÀNH original_price)
+// =================================================================
+// 4. LẤY CHI TIẾT SẢN PHẨM TRONG HÓA ĐƠN (QUERY 2)
+// =================================================================
 $sql_details = "SELECT products.name, products.image, products.original_price, 
                        order_details.quantity, order_details.price
                 FROM order_details
@@ -38,87 +49,34 @@ mysqli_stmt_bind_param($stmt_details, "i", $order_id);
 mysqli_stmt_execute($stmt_details);
 $result_details = mysqli_stmt_get_result($stmt_details);
 
-// --- TÍNH TOÁN TRƯỚC KHI HIỂN THỊ ---
+// =================================================================
+// 5. TÍNH TOÁN SỐ LIỆU (DOANH THU, VỐN, LÃI)
+// =================================================================
 $items = [];
-$total_revenue = 0;
-$total_cost = 0;
+$total_revenue = 0; // Tổng tiền khách trả
+$total_cost = 0;    // Tổng tiền vốn
 
 if ($result_details) {
     while ($row = mysqli_fetch_assoc($result_details)) {
-        // Tính toán từng dòng (SỬA LẠI key mảng ở đây)
-        $row['line_revenue'] = $row['price'] * $row['quantity']; // Tiền bán
-        $row['line_cost']    = $row['original_price'] * $row['quantity']; // Tiền vốn (Đã sửa)
+        // Tính toán cho từng dòng sản phẩm
+        $row['line_revenue'] = $row['price'] * $row['quantity']; // Giá bán x Số lượng
+        $row['line_cost']    = $row['original_price'] * $row['quantity']; // Giá vốn x Số lượng
         $row['line_profit']  = $row['line_revenue'] - $row['line_cost']; // Lợi nhuận
         
-        // Cộng dồn tổng
+        // Cộng dồn vào tổng chung
         $total_revenue += $row['line_revenue'];
         $total_cost    += $row['line_cost'];
         
-        $items[] = $row;
+        $items[] = $row; // Lưu vào mảng để hiển thị sau
     }
 }
-$total_profit = $total_revenue - $total_cost;
+$total_profit = $total_revenue - $total_cost; // Lợi nhuận tổng của đơn hàng
 ?>
-
-<style>
-    .admin-wrapper { max-width: 1000px; margin: 0 auto; padding: 30px 20px; }
-    h2 { color: #333; margin-bottom: 1.5rem; border-left: 5px solid #17a2b8; padding-left: 15px; }
-    .btn-back { display: inline-block; background-color: #6c757d; color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-bottom: 20px; font-size: 14px; }
-    .btn-back:hover { background-color: #5a6268; }
-
-    /* DASHBOARD MINI CHO ĐƠN HÀNG */
-    .order-stats { display: flex; gap: 15px; margin-bottom: 25px; }
-    .stat-box { flex: 1; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-top: 4px solid #ccc; }
-    .stat-box h4 { margin: 0 0 5px; font-size: 12px; text-transform: uppercase; color: #777; }
-    .stat-box .num { font-size: 20px; font-weight: bold; }
-    
-    .box-rev { border-top-color: #28a745; }
-    .box-rev .num { color: #28a745; }
-    
-    .box-cost { border-top-color: #ffc107; }
-    .box-cost .num { color: #d39e00; }
-    
-    .box-profit { border-top-color: #6f42c1; }
-    .box-profit .num { color: #6f42c1; }
-
-    /* TABLE STYLES */
-    .order-info-line { background: #e9ecef; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; color: #555; }
-    table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 10px; overflow: hidden; }
-    th, td { border-bottom: 1px solid #eee; padding: 12px 15px; text-align: left; vertical-align: middle; }
-    th { background-color: #f8f9fa; font-weight: 700; color: #555; text-transform: uppercase; font-size: 12px; }
-    img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
-    
-    .text-right { text-align: right; }
-    .fw-bold { font-weight: bold; }
-    .text-green { color: #28a745; }
-    .text-purple { color: #6f42c1; }
-    .text-muted { color: #999; font-size: 0.9em; }
-
-    .total-row td { background-color: #ffffeb; font-weight: bold; font-size: 16px; padding-top: 15px; padding-bottom: 15px; border-top: 2px solid #ddd; }
-    /* CSS cho nút Xuất Excel */
-    .btn-excel {
-        display: inline-block;
-        background-color: #217346; /* Màu xanh Excel */
-        color: white;
-        padding: 8px 15px;
-        text-decoration: none;
-        border-radius: 5px;
-        font-weight: bold;
-        font-size: 14px;
-        transition: 0.2s;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .btn-excel:hover {
-        background-color: #1e6b41;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-    }
-</style>
 
 <div class="admin-wrapper">
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <a href="order_list.php" class="btn-back" style="margin-bottom: 0;">← Quay lại danh sách</a>
+    <div class="header-row">
+        <a href="order_list.php" class="btn-back">← Quay lại danh sách</a>
         
         <a href="../excel/export_order_excel.php?id=<?php echo $order_id; ?>" class="btn-excel" target="_blank">
             📥 Xuất Hóa Đơn Excel
@@ -126,9 +84,9 @@ $total_profit = $total_revenue - $total_cost;
     </div>
 
     <?php if ($order_info): ?>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2>Chi tiết Hóa đơn: #<?php echo $order_info['id']; ?></h2>
-            <div style="font-style:italic; color:#666;">
+        <div class="header-row">
+            <h2 class="title-order" style="margin-bottom: 0;">Chi tiết Hóa đơn: #<?php echo $order_info['id']; ?></h2>
+            <div class="text-muted" style="font-style:italic;">
                 Ngày tạo: <strong><?php echo date('d/m/Y H:i', strtotime($order_info['order_date'])); ?></strong>
             </div>
         </div>
@@ -137,7 +95,7 @@ $total_profit = $total_revenue - $total_cost;
             Người lập đơn: <strong><?php echo htmlspecialchars($order_info['full_name']); ?></strong>
         </div>
 
-        <div class="order-stats">
+        <div class="order-stats-mini">
             <div class="stat-box box-rev">
                 <h4>Tổng tiền khách trả</h4>
                 <div class="num"><?php echo number_format($total_revenue); ?> ₫</div>
@@ -150,15 +108,16 @@ $total_profit = $total_revenue - $total_cost;
                 <h4>Lợi nhuận đơn này</h4>
                 <div class="num"><?php echo number_format($total_profit); ?> ₫</div>
             </div>
-            <div class="stat-box" style="border-top-color: #17a2b8;">
+            <div class="stat-box box-rate">
                 <h4>Tỉ suất lợi nhuận</h4>
-                <div class="num" style="color: #17a2b8;">
+                <div class="num">
                     <?php echo ($total_revenue > 0) ? round(($total_profit / $total_revenue) * 100, 1) : 0; ?>%
                 </div>
             </div>
         </div>
 
         <h3>Chi tiết sản phẩm</h3>
+        
         <table>
             <thead>
                 <tr>
@@ -179,7 +138,7 @@ $total_profit = $total_revenue - $total_cost;
                             <?php if($item['image']): ?>
                                 <img src="./uploads/<?php echo htmlspecialchars($item['image']); ?>" alt="Img">
                             <?php else: ?>
-                                <img src="../assets/no-image.png" alt="No Img">
+                                <span class="img-placeholder">No img</span>
                             <?php endif; ?>
                         </td>
                         <td>
@@ -195,11 +154,11 @@ $total_profit = $total_revenue - $total_cost;
                             <?php echo number_format($item['original_price']); ?> ₫
                         </td>
 
-                        <td class="text-right fw-bold text-green">
+                        <td class="text-right font-bold text-green">
                             <?php echo number_format($item['line_revenue']); ?> ₫
                         </td>
                         
-                        <td class="text-right fw-bold text-purple">
+                        <td class="text-right font-bold text-purple">
                             <?php echo number_format($item['line_profit']); ?> ₫
                         </td>
                     </tr>
@@ -212,21 +171,21 @@ $total_profit = $total_revenue - $total_cost;
                     </tr>
 
                 <?php else: ?>
-                    <tr><td colspan="7">Không có sản phẩm nào trong đơn hàng này.</td></tr>
+                    <tr><td colspan="7" class="text-center">Không có sản phẩm nào trong đơn hàng này.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
 
     <?php else: ?>
-        <h2>Không tìm thấy hóa đơn này.</h2>
+        <div class="alert error">Không tìm thấy hóa đơn này.</div>
     <?php endif; ?>
 
 </div>
 
 <?php
-// DỌN DẸP
+// Giải phóng bộ nhớ và đóng kết nối
 if ($result_details) mysqli_free_result($result_details);
 mysqli_stmt_close($stmt_details);
 disconnect_db();
-echo '</div>'; 
+echo '</div>'; // Đóng admin-wrapper
 ?>

@@ -1,26 +1,30 @@
 <?php
-// 1. BẢO VỆ & GIAO DIỆN
-require '../includes/auth_admin.php'; 
-require '../includes/header.php'; 
-require '../includes/admin_sidebar.php'; 
+// =================================================================
+// 1. KẾT NỐI VÀ BẢO VỆ TRANG
+// =================================================================
+require '../includes/auth_admin.php'; // Kiểm tra đăng nhập và quyền hạn
+require '../includes/header.php';     // Gọi phần đầu trang (HTML head, CSS)
+require '../includes/admin_sidebar.php'; // Gọi thanh Menu bên trái
 
-echo '<div class="main-with-sidebar">';
+echo '<div class="main-with-sidebar">'; // Mở khung nội dung chính
 echo '<div class="admin-wrapper" style="margin: 0; max-width: none; flex: 1;">';
 
-// --- CẤU HÌNH PHÂN TRANG ---
-$limit = 10; 
+// =================================================================
+// 2. CẤU HÌNH PHÂN TRANG & NHẬN DỮ LIỆU LỌC
+// =================================================================
+$limit = 10; // Số dòng hiển thị trên 1 trang
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
-$offset = ($page - 1) * $limit;
+$offset = ($page - 1) * $limit; // Tính vị trí bắt đầu lấy dữ liệu
 
-// --- XỬ LÝ LỌC & TÌM KIẾM ---
+// Lấy tham số tìm kiếm từ URL (GET)
 $search = "";
 $filter_shift = ""; 
 $filter_day   = ""; 
 $filter_month = ""; 
-$filter_year  = date('Y'); 
-$sort_by = "orders.order_date";
-$order_dir = "DESC";
+$filter_year  = date('Y'); // Mặc định là năm nay
+$sort_by = "orders.order_date"; // Mặc định sắp xếp theo ngày
+$order_dir = "DESC"; // Mặc định giảm dần (Mới nhất lên đầu)
 
 if (isset($_GET['search'])) $search = trim($_GET['search']);
 if (isset($_GET['shift']))  $filter_shift = $_GET['shift'];
@@ -29,20 +33,28 @@ if (isset($_GET['month']))  $filter_month = $_GET['month'];
 if (isset($_GET['year']))   $filter_year = $_GET['year'];
 if ($filter_year == 'all') $filter_year = '';
 
-// --- TẠO ĐIỀU KIỆN WHERE ---
-$where_clause = " WHERE 1=1";
+// =================================================================
+// 3. XÂY DỰNG CÂU TRUY VẤN (QUERY BUILDER)
+// =================================================================
+$where_clause = " WHERE 1=1"; // Điều kiện mặc định luôn đúng
+
+// A. Tìm kiếm theo từ khóa
 if (!empty($search)) {
     $s = mysqli_real_escape_string($conn, $search);
     $where_clause .= " AND (orders.id LIKE '%$s%' OR users.full_name LIKE '%$s%')";
 }
+// B. Lọc theo Ca làm việc
 if (!empty($filter_shift) && $filter_shift != 'all') {
     $where_clause .= " AND users.shift = '$filter_shift'";
 }
+// C. Lọc theo Thời gian (Ngày/Tháng/Năm)
 if (!empty($filter_day))   $where_clause .= " AND DAY(orders.order_date) = '$filter_day'";
 if (!empty($filter_month)) $where_clause .= " AND MONTH(orders.order_date) = '$filter_month'";
 if (!empty($filter_year))  $where_clause .= " AND YEAR(orders.order_date) = '$filter_year'";
 
-// --- BƯỚC 1: ĐẾM TỔNG SỐ TRANG ---
+// =================================================================
+// 4. QUERY 1: TÍNH TỔNG SỐ LƯỢNG (ĐỂ PHÂN TRANG)
+// =================================================================
 $sql_count = "SELECT COUNT(DISTINCT orders.id) as total 
               FROM orders 
               JOIN users ON orders.user_id = users.id 
@@ -52,10 +64,10 @@ $row_count = mysqli_fetch_assoc($result_count);
 $total_records = $row_count['total'];
 $total_pages = ceil($total_records / $limit);
 
-// =================================================================================
-// --- BƯỚC 1.5: TÍNH TỔNG DOANH THU & VỐN (TOÀN BỘ KẾT QUẢ LỌC - KHÔNG CÓ LIMIT) ---
-// =================================================================================
-// Ta dùng Subquery để đảm bảo tính đúng Group By của từng đơn trước khi Sum tổng
+// =================================================================
+// 5. QUERY 2: TÍNH TỔNG QUÁT (DOANH THU, VỐN, LỢI NHUẬN)
+// =================================================================
+// Mục đích: Hiển thị 3 ô thống kê trên đầu trang
 $sql_sum_all = "SELECT 
                     SUM(temp_table.total_amount) as grand_revenue,
                     SUM(temp_table.calculated_cost) as grand_cost
@@ -74,13 +86,13 @@ $sql_sum_all = "SELECT
 $result_sum_all = mysqli_query($conn, $sql_sum_all);
 $row_sum_all = mysqli_fetch_assoc($result_sum_all);
 
-// Gán vào biến tổng để hiển thị ở ô thống kê
 $sum_revenue = $row_sum_all['grand_revenue'] ?? 0;
 $sum_cost    = $row_sum_all['grand_cost'] ?? 0;
 $sum_profit  = $sum_revenue - $sum_cost;
 
-
-// --- BƯỚC 2: TRUY VẤN DỮ LIỆU CHÍNH ĐỂ HIỂN THỊ BẢNG (CÓ LIMIT) ---
+// =================================================================
+// 6. QUERY 3: LẤY DỮ LIỆU HIỂN THỊ (CÓ LIMIT & SORT)
+// =================================================================
 $sql = "SELECT 
             orders.id, 
             orders.order_date, 
@@ -96,7 +108,7 @@ $sql = "SELECT
 
 $sql .= " GROUP BY orders.id"; 
 
-// Sắp xếp
+// Xử lý sắp xếp
 $allowed_sort = [
     'id' => 'orders.id', 
     'date' => 'orders.order_date', 
@@ -110,20 +122,17 @@ if (isset($_GET['order_dir'])) {
     $order_dir = (strtoupper($_GET['order_dir']) == 'ASC') ? 'ASC' : 'DESC';
 }
 $sql .= " ORDER BY $sort_by $order_dir";
-$sql .= " LIMIT $offset, $limit"; // Vẫn giữ LIMIT ở đây để phân trang bảng
+$sql .= " LIMIT $offset, $limit";
 
 $result = mysqli_query($conn, $sql);
 
-// --- CHUẨN BỊ DỮ LIỆU HIỂN THỊ ---
+// Lưu dữ liệu vào mảng để dễ xử lý hiển thị
 $data_rows = []; 
-
 if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
         $revenue = $row['total_amount'];
         $cost    = $row['calculated_cost']; 
         $profit  = $revenue - $cost;
-
-        // LƯU Ý: Đã xóa đoạn cộng dồn $sum_revenue += ... ở đây vì đã tính ở Bước 1.5
         
         $row['profit'] = $profit;
         $row['cost']   = $cost;
@@ -134,33 +143,10 @@ if ($result) {
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-    /* (Giữ nguyên phần Style của bạn) */
-    .dashboard-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
-    .stat-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid #ccc; }
-    .stat-card h4 { margin: 0 0 5px 0; font-size: 14px; color: #666; text-transform: uppercase; }
-    .stat-card .value { font-size: 22px; font-weight: bold; }
-    .card-revenue { border-color: #28a745; } .card-revenue .value { color: #28a745; }
-    .card-cost { border-color: #ffc107; } .card-cost .value { color: #d39e00; }
-    .card-profit { border-color: #17A2B8; } .card-profit .value { color: #17A2B8; }
-    .btn-filter { background: #17A2B8; color: white; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; height: 38px;}
-    .shift-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; margin-left: 5px; display: inline-block; }
-    .shift-sang { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
-    .shift-chieu { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-    .shift-toi { background: #e0cffc; color: #59359a; border: 1px solid #cff4fc; }
-
-    .pagination { display: flex; justify-content: center; margin-top: 20px; gap: 5px; }
-    .pagination a, .pagination span { padding: 8px 12px; border: 1px solid #ddd; background: white; text-decoration: none; color: #333; border-radius: 4px; }
-    .pagination a:hover { background: #f0f0f0; }
-    .pagination .active { background: #17A2B8; color: white; border-color: #17A2B8; }
-    .pagination .disabled { color: #ccc; pointer-events: none; }
-</style>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div class="header-row">
         <h2 class="title-order" style="margin: 0;">Quản lý Dòng tiền & Hóa đơn</h2>
         
-        <a href="../excel/export_orders_list_excel.php?<?php echo http_build_query($_GET); ?>" target="_blank" 
-        style="background: #217346; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <a href="export_orders_list_excel.php?<?php echo http_build_query($_GET); ?>" target="_blank" class="btn-excel">
             📥 Xuất Excel Báo Cáo
         </a>
     </div>
@@ -181,55 +167,61 @@ if ($result) {
     </div>
 
     <div class="filter-card">
-       <form method="GET" action="" class="filter-row" style="flex-wrap: wrap; gap: 10px;">
-           <div class="filter-group" style="flex: 1 1 200px;">
-                <label>Mã HĐ / Tên NV</label>
-                <input type="text" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>">
-            </div>
-            <div class="filter-group" style="width: 100px;">
-                <label>Ca</label>
-                <select name="shift" class="form-control">
-                    <option value="all">Tất cả</option>
-                    <option value="sang" <?php if($filter_shift == 'sang') echo 'selected'; ?>>Sáng</option>
-                    <option value="chieu" <?php if($filter_shift == 'chieu') echo 'selected'; ?>>Chiều</option>
-                    <option value="toi" <?php if($filter_shift == 'toi') echo 'selected'; ?>>Tối</option>
-                </select>
-            </div>
-            <div class="filter-group" style="width: 80px;">
-                <label>Ngày</label>
-                <select name="day" class="form-control">
-                    <option value="">--</option>
-                    <?php for($d=1; $d<=31; $d++): ?><option value="<?php echo $d; ?>" <?php if($filter_day == $d) echo 'selected'; ?>><?php echo $d; ?></option><?php endfor; ?>
-                </select>
-            </div>
-            <div class="filter-group" style="width: 100px;">
-                <label>Tháng</label>
-                <select name="month" class="form-control">
-                    <option value="">Tất cả</option>
-                    <?php for($m=1; $m<=12; $m++): ?><option value="<?php echo $m; ?>" <?php if($filter_month == $m) echo 'selected'; ?>>Tháng <?php echo $m; ?></option><?php endfor; ?>
-                </select>
-            </div>
-            <div class="filter-group" style="width: 100px;">
-                <label>Năm</label>
-                <select name="year" class="form-control">
-                    <option value="all">Tất cả</option>
-                    <?php $c=date('Y'); for($y=$c; $y>=$c-5; $y--): ?><option value="<?php echo $y; ?>" <?php if($filter_year == $y) echo 'selected'; ?>><?php echo $y; ?></option><?php endfor; ?>
-                </select>
-            </div>
-            <div class="filter-group" style="width: 140px;">
-                <label>Sắp xếp</label>
-                <select name="sort_by" class="form-control">
-                    <option value="date" <?php if($sort_by == 'orders.order_date') echo 'selected'; ?>>Ngày tạo</option>
-                    <option value="amount" <?php if($sort_by == 'orders.total_amount') echo 'selected'; ?>>Doanh thu</option>
-                    <option value="profit" <?php if(isset($_GET['sort_by']) && $_GET['sort_by'] == 'profit') echo 'selected'; ?>>Lợi nhuận</option>
-                </select>
-            </div>
-            <div class="filter-group action-group" style="display: flex; align-items: flex-end;">
-                <button type="submit" class="btn-filter">🔍 Lọc</button>
-                <?php if($search || $filter_shift || $filter_day || $filter_month || ($filter_year != date('Y'))): ?>
-                    <a href="order_list.php" class="btn-reset" title="Đặt lại" style="margin-left: 5px; line-height: 38px;">↺</a>
-                <?php endif; ?>
-            </div>
+       <form method="GET" action="" class="filter-row">
+           <div class="filter-group">
+               <label>Mã HĐ / Tên NV</label>
+               <input type="text" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>">
+           </div>
+           
+           <div class="filter-group">
+               <label>Ca</label>
+               <select name="shift" class="form-control">
+                   <option value="all">Tất cả</option>
+                   <option value="sang" <?php if($filter_shift == 'sang') echo 'selected'; ?>>Sáng</option>
+                   <option value="chieu" <?php if($filter_shift == 'chieu') echo 'selected'; ?>>Chiều</option>
+                   <option value="toi" <?php if($filter_shift == 'toi') echo 'selected'; ?>>Tối</option>
+               </select>
+           </div>
+           
+           <div class="filter-group">
+               <label>Ngày</label>
+               <select name="day" class="form-control">
+                   <option value="">--</option>
+                   <?php for($d=1; $d<=31; $d++): ?><option value="<?php echo $d; ?>" <?php if($filter_day == $d) echo 'selected'; ?>><?php echo $d; ?></option><?php endfor; ?>
+               </select>
+           </div>
+           
+           <div class="filter-group">
+               <label>Tháng</label>
+               <select name="month" class="form-control">
+                   <option value="">Tất cả</option>
+                   <?php for($m=1; $m<=12; $m++): ?><option value="<?php echo $m; ?>" <?php if($filter_month == $m) echo 'selected'; ?>>Tháng <?php echo $m; ?></option><?php endfor; ?>
+               </select>
+           </div>
+           
+           <div class="filter-group">
+               <label>Năm</label>
+               <select name="year" class="form-control">
+                   <option value="all">Tất cả</option>
+                   <?php $c=date('Y'); for($y=$c; $y>=$c-5; $y--): ?><option value="<?php echo $y; ?>" <?php if($filter_year == $y) echo 'selected'; ?>><?php echo $y; ?></option><?php endfor; ?>
+               </select>
+           </div>
+           
+           <div class="filter-group">
+               <label>Sắp xếp</label>
+               <select name="sort_by" class="form-control">
+                   <option value="date" <?php if($sort_by == 'orders.order_date') echo 'selected'; ?>>Ngày tạo</option>
+                   <option value="amount" <?php if($sort_by == 'orders.total_amount') echo 'selected'; ?>>Doanh thu</option>
+                   <option value="profit" <?php if(isset($_GET['sort_by']) && $_GET['sort_by'] == 'profit') echo 'selected'; ?>>Lợi nhuận</option>
+               </select>
+           </div>
+           
+           <div class="filter-group action-group" style="flex-direction: row; align-items: flex-end;">
+               <button type="submit" class="btn-filter">🔍 Lọc</button>
+               <?php if($search || $filter_shift || $filter_day || $filter_month || ($filter_year != date('Y'))): ?>
+                   <a href="order_list.php" class="btn-reset" title="Đặt lại">↺</a>
+               <?php endif; ?>
+           </div>
        </form>
     </div>
     
@@ -245,9 +237,9 @@ if ($result) {
                     <th>Mã HĐ</th>
                     <th>Thời gian</th>
                     <th>Nhân viên / Ca</th>
-                    <th>Doanh thu</th>
-                    <th>Lợi nhuận</th> 
-                    <th style="text-align: center;">Hành động</th>
+                    <th class="text-right">Doanh thu</th>
+                    <th class="text-right">Lợi nhuận</th> 
+                    <th class="text-center">Hành động</th>
                 </tr>
             </thead>
             <tbody>
@@ -256,7 +248,7 @@ if ($result) {
                     <td><strong>#<?php echo $row['id']; ?></strong></td>
                     <td>
                         <?php echo date('d/m/Y', strtotime($row['order_date'])); ?><br>
-                        <small style="color:#888"><?php echo date('H:i', strtotime($row['order_date'])); ?></small>
+                        <span class="text-muted"><?php echo date('H:i', strtotime($row['order_date'])); ?></span>
                     </td> 
                     <td>
                         <?php echo htmlspecialchars($row['full_name']); ?>
@@ -266,11 +258,17 @@ if ($result) {
                             elseif($row['shift'] == 'toi') echo '<span class="shift-badge shift-toi">Tối</span>';
                         ?>
                     </td>
-                    <td style="color: #28a745; font-weight: bold;"><?php echo number_format($row['total_amount']); ?> ₫</td>
-                    <td style="color: #17A2B8; font-weight: bold;"><?php echo number_format($row['profit']); ?> ₫</td>
-                    <td style="text-align: center;">
-                        <a href="order_details.php?id=<?php echo $row['id']; ?>" class="btn-action btn-view">📄</a>
-                        <a href="order_delete.php?id=<?php echo $row['id']; ?>" onclick="confirmDeleteOrder(event, this.href, '<?php echo $row['id']; ?>')" class="btn-action btn-delete">🗑</a>
+                    <td class="text-right text-green font-bold">
+                        <?php echo number_format($row['total_amount']); ?> ₫
+                    </td>
+                    <td class="text-right text-blue font-bold">
+                        <?php echo number_format($row['profit']); ?> ₫
+                    </td>
+                    <td class="text-center">
+                        <div class="action-buttons" style="justify-content: center;">
+                            <a href="order_details.php?id=<?php echo $row['id']; ?>" class="btn-action btn-view">📄</a>
+                            <a href="order_delete.php?id=<?php echo $row['id']; ?>" onclick="confirmDeleteOrder(event, this.href, '<?php echo $row['id']; ?>')" class="btn-action btn-delete">🗑</a>
+                        </div>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -315,6 +313,7 @@ if ($result) {
     <?php endif; ?>
         
 <?php 
+// Đóng các thẻ div wrapper
 echo '</div>'; 
 echo '</div>'; 
 ?>
