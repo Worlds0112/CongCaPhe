@@ -56,7 +56,12 @@ if ($current_hour >= 6 && $current_hour < 12) {
 // Công thức: (Tổng nạp quỹ + Tổng bán hàng) - (Tổng tiền nhập hàng)
 $total_fund_in = get_val($conn, "SELECT SUM(amount) FROM funds");
 $total_revenue_all = get_val($conn, "SELECT SUM(total_amount) FROM orders");
-$total_import_cost_all = get_val($conn, "SELECT SUM(quantity * import_price) FROM inventory_history WHERE quantity > 0");
+$total_import_cost_all = get_val($conn, "
+    SELECT SUM(h.quantity * IF(h.import_price > 0, h.import_price, p.original_price)) 
+    FROM inventory_history h 
+    JOIN products p ON h.product_id = p.id 
+    WHERE h.quantity > 0
+");
 // Lợi nhuận gộp toàn thời gian (Giá bán - Giá vốn * Số lượng bán)
 $total_profit_all = get_val($conn, "SELECT SUM((od.price - p.original_price) * od.quantity) FROM order_details od JOIN products p ON od.product_id = p.id JOIN orders o ON od.order_id = o.id");
 
@@ -64,22 +69,39 @@ $current_balance = ($total_fund_in + $total_revenue_all) - $total_import_cost_al
 
 // B. SỐ LIỆU CA HIỆN TẠI (THEO KHUNG GIỜ ĐÃ XÁC ĐỊNH Ở TRÊN)
 $rev_shift = get_val($conn, "SELECT SUM(total_amount) FROM orders WHERE order_date >= '$shift_start' AND order_date <= '$shift_end'");
-$cost_import_shift = get_val($conn, "SELECT SUM(quantity * import_price) FROM inventory_history WHERE created_at >= '$shift_start' AND created_at <= '$shift_end' AND quantity > 0");
+$cost_import_shift = get_val($conn, "
+    SELECT SUM(h.quantity * IF(h.import_price > 0, h.import_price, p.original_price)) 
+    FROM inventory_history h 
+    JOIN products p ON h.product_id = p.id 
+    WHERE h.created_at >= '$shift_start' AND h.created_at <= '$shift_end' AND h.quantity > 0
+");
 $prof_shift = get_val($conn, "SELECT SUM((od.price - p.original_price) * od.quantity) FROM order_details od JOIN products p ON od.product_id = p.id JOIN orders o ON od.order_id = o.id WHERE o.order_date >= '$shift_start' AND o.order_date <= '$shift_end'");
 
 // C. SỐ LIỆU HÔM NAY (TOÀN BỘ 24H)
 $rev_today = get_val($conn, "SELECT SUM(total_amount) FROM orders WHERE DATE(order_date) = '$today'");
 $prof_today = get_val($conn, "SELECT SUM((od.price - p.original_price) * od.quantity) FROM order_details od JOIN products p ON od.product_id = p.id JOIN orders o ON od.order_id = o.id WHERE DATE(o.order_date) = '$today'");
 $sold_today = get_val($conn, "SELECT SUM(od.quantity) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE DATE(o.order_date) = '$today'");
-$import_today = get_val($conn, "SELECT SUM(quantity) FROM inventory_history WHERE DATE(created_at) = '$today'");
-$cost_import_today = get_val($conn, "SELECT SUM(quantity * import_price) FROM inventory_history WHERE DATE(created_at) = '$today' AND quantity > 0");
+// Chỉ tính những dòng có quantity > 0 (tức là nhập kho)
+$import_today = get_val($conn, "SELECT SUM(quantity) FROM inventory_history WHERE DATE(created_at) = '$today' AND quantity > 0");
+$cost_import_today = get_val($conn, "
+    SELECT SUM(h.quantity * IF(h.import_price > 0, h.import_price, p.original_price)) 
+    FROM inventory_history h 
+    JOIN products p ON h.product_id = p.id 
+    WHERE DATE(h.created_at) = '$today' AND h.quantity > 0
+");
 
 // D. SỐ LIỆU THÁNG NÀY
 $rev_month = get_val($conn, "SELECT SUM(total_amount) FROM orders WHERE DATE_FORMAT(order_date, '%Y-%m') = '$this_month'");
 $prof_month = get_val($conn, "SELECT SUM((od.price - p.original_price) * od.quantity) FROM order_details od JOIN products p ON od.product_id = p.id JOIN orders o ON od.order_id = o.id WHERE DATE_FORMAT(o.order_date, '%Y-%m') = '$this_month'");
 $sold_month = get_val($conn, "SELECT SUM(od.quantity) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE DATE_FORMAT(o.order_date, '%Y-%m') = '$this_month'");
-$import_month = get_val($conn, "SELECT SUM(quantity) FROM inventory_history WHERE DATE_FORMAT(created_at, '%Y-%m') = '$this_month'");
-$cost_import_month = get_val($conn, "SELECT SUM(quantity * import_price) FROM inventory_history WHERE DATE_FORMAT(created_at, '%Y-%m') = '$this_month' AND quantity > 0");
+// Chỉ tính những dòng có quantity > 0
+$import_month = get_val($conn, "SELECT SUM(quantity) FROM inventory_history WHERE DATE_FORMAT(created_at, '%Y-%m') = '$this_month' AND quantity > 0");
+$cost_import_month = get_val($conn, "
+    SELECT SUM(h.quantity * IF(h.import_price > 0, h.import_price, p.original_price)) 
+    FROM inventory_history h 
+    JOIN products p ON h.product_id = p.id 
+    WHERE DATE_FORMAT(h.created_at, '%Y-%m') = '$this_month' AND h.quantity > 0
+");
 
 // E. CẢNH BÁO KHO (SẢN PHẨM SẮP HẾT)
 $low_stock = get_val($conn, "SELECT COUNT(*) FROM products WHERE stock <= 5");
@@ -202,14 +224,14 @@ for ($m = 1; $m <= 12; $m++) {
     <div class="section-title"><span style="background: #007bff;"></span> ĐANG HOẠT ĐỘNG: <?php echo $shift_name; ?></div>
     
     <div class="stats-grid">
-        <a href="order_list.php?date=<?php echo $today; ?>" class="stat-card c-blue c-blue-bg">
-            <span class="stat-icon">⚡</span> 
-            <div class="stat-label">Doanh thu Ca</div>
-            <div class="stat-number"><?php echo number_format($rev_shift); ?> ₫</div>
-            <div class="stat-desc">Đang bán hiện tại</div>
-        </a>
+        <a href="order_list.php?day=<?php echo date('d'); ?>&month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>&shift=<?php echo $current_shift_code; ?>" class="stat-card c-blue c-blue-bg">
+        <span class="stat-icon">⚡</span> 
+        <div class="stat-label">Doanh thu Ca</div>
+        <div class="stat-number"><?php echo number_format($rev_shift); ?> ₫</div>
+        <div class="stat-desc">Đang bán hiện tại</div>
+    </a>
 
-        <a href="inventory_history.php?day=<?php echo date('d'); ?>&month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>&shift=<?php echo $current_shift_code; ?>" class="stat-card c-red">
+        <a href="inventory_history.php?day=<?php echo date('d'); ?>&month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>&shift=<?php echo $current_shift_code; ?>&type=in" class="stat-card c-red">
             <span class="stat-icon">📦</span>
             <div class="stat-label">Vốn Nhập (Ca)</div>
             <div class="stat-number"><?php echo number_format($cost_import_shift); ?> ₫</div>
@@ -235,14 +257,14 @@ for ($m = 1; $m <= 12; $m++) {
     <div class="section-title"><span style="background: #28a745;"></span> HÔM NAY (<?php echo date('d/m'); ?>)</div>
     
     <div class="stats-grid">
-        <a href="order_list.php?date=<?php echo $today; ?>" class="stat-card c-green">
+        <a href="order_list.php?day=<?php echo date('d'); ?>&month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>" class="stat-card c-green">
             <span class="stat-icon">⚡</span>
             <div class="stat-label">Doanh thu Ngày</div> 
             <div class="stat-number"><?php echo number_format($rev_today); ?> ₫</div> 
             <div class="stat-desc">Tổng doanh số bán</div>
         </a>
 
-        <a href="inventory_history.php?day=<?php echo date('d'); ?>&month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>" class="stat-card c-red">
+        <a href="inventory_history.php?day=<?php echo date('d'); ?>&month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>&type=in" class="stat-card c-red">
             <span class="stat-icon">📦</span>
             <div class="stat-label">Vốn Nhập (Ngày)</div> 
             <div class="stat-number"><?php echo number_format($cost_import_today); ?> ₫</div>
@@ -262,14 +284,14 @@ for ($m = 1; $m <= 12; $m++) {
             <div class="stat-desc">Lãi trên đơn hàng</div>
         </div>
 
-        <a href="order_list.php?date=<?php echo $today; ?>" class="stat-card c-orange">
+        <a href="order_list.php?day=<?php echo date('d'); ?>&month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>" class="stat-card c-orange">
             <span class="stat-icon">☕</span>
             <div class="stat-label">Bán Ra (Ngày)</div> 
             <div class="stat-number"><?php echo number_format($sold_today); ?></div>
             <div class="stat-desc">Đơn vị: Món/Ly</div>
         </a>
 
-        <a href="inventory_history.php?date=<?php echo $today; ?>" class="stat-card c-cyan">
+        <a href="inventory_history.php?day=<?php echo date('d'); ?>&month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>&type=in" class="stat-card c-cyan">
             <span class="stat-icon">🚚</span>
             <div class="stat-label">Nhập Kho (Ngày)</div> 
             <div class="stat-number"><?php echo number_format($import_today); ?></div>
@@ -289,14 +311,14 @@ for ($m = 1; $m <= 12; $m++) {
     <div class="section-title"><span style="background: #6f42c1;"></span> THÁNG <?php echo date('m/Y'); ?></div>
 
     <div class="stats-grid">
-        <a href="order_list.php?month=<?php echo $this_month; ?>" class="stat-card c-purple">
+        <a href="order_list.php?month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>" class="stat-card c-purple">
             <span class="stat-icon">⚡</span>
             <div class="stat-label">Doanh thu Tháng</div>
             <div class="stat-number"><?php echo number_format($rev_month); ?> ₫</div>
             <div class="stat-desc">Tổng thu</div>
         </a>
 
-        <a href="inventory_history.php?month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>" class="stat-card c-red">
+        <a href="inventory_history.php?month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>&type=in" class="stat-card c-red">
             <span class="stat-icon">📦</span>
             <div class="stat-label">Vốn Nhập Tháng</div>
             <div class="stat-number"><?php echo number_format($cost_import_month); ?> ₫</div>
@@ -316,14 +338,14 @@ for ($m = 1; $m <= 12; $m++) {
             <div class="stat-desc">Lãi ròng (trên đơn)</div>
         </div>
 
-        <a href="order_list.php?month=<?php echo $this_month; ?>" class="stat-card c-orange">
+        <a href="order_list.php?month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>" class="stat-card c-orange">
             <span class="stat-icon">☕</span>
             <div class="stat-label">Tổng Bán Tháng</div>
             <div class="stat-number"><?php echo number_format($sold_month); ?></div>
             <div class="stat-desc">Ly/Món</div>
         </a>
 
-        <a href="inventory_history.php?month=<?php echo $this_month; ?>" class="stat-card c-cyan">
+        <a href="inventory_history.php?month=<?php echo date('m'); ?>&year=<?php echo date('Y'); ?>&type=in" class="stat-card c-cyan">
             <span class="stat-icon">🚚</span>
             <div class="stat-label">Tổng Nhập Tháng</div>
             <div class="stat-number"><?php echo number_format($import_month); ?></div>

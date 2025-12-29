@@ -20,7 +20,7 @@ require 'includes/header.php';
     /* HERO SECTION (Banner) */
     .hero-section {
         /* Ảnh nền Banner */
-        background: linear-gradient(rgba(50, 70, 30, 0.8), rgba(50, 70, 30, 0.6)), url('https://cong-news.appwifi.com/wp-content/uploads/2023/05/IMG_4045.jpg');
+        background: linear-gradient(rgba(50, 70, 30, 0.8), rgba(50, 70, 30, 0.6)), url('admin/uploads/IMG_4045.jpg');
         background-size: cover;
         background-position: center;
         color: white;

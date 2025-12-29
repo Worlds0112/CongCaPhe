@@ -1,0 +1,65 @@
+﻿
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family: 'Times New Roman', serif; font-size: 12pt;">
+<table border="1" cellpadding="5" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #000;">
+    <tr style="height: 40px; background-color: #ffc107;">
+        <td colspan="8" align="center" style="font-size: 16pt; font-weight: bold;">LICH SU KET CA & BAN GIAO</td>
+    </tr>
+    <tr style="background-color: #eee; font-weight: bold;">
+        <td align="center">STT</td>
+        <td align="center">Ngay Bao Cao</td>
+        <td align="center">Ca</td>
+        <td align="center">Nhan Vien</td>
+        <td align="center">Doanh Thu May</td>
+        <td align="center">Tien Mat Thuc Te</td>
+        <td align="center">Chenh Lech</td>
+        <td align="center">Ghi Chu</td>
+    </tr>
+        <tr>
+        <td align="center">1</td>
+        <td align="center">27/12/2025</td>
+        <td align="center">Sang</td>
+        <td>Vũ Thành An</td>
+        <td align="right">224,000</td>
+        <td align="right">224,000</td>
+        <td align="right" style="color: black; font-weight: bold;">0</td>
+        <td>
+            Kho:  | Chung: Hệ thống tự động chốt (Quá hạn 15p). NV cuối cùng bán hàng.        </td>
+    </tr>
+        <tr>
+        <td align="center">2</td>
+        <td align="center">22/12/2025</td>
+        <td align="center">Sang</td>
+        <td>Lê Văn Huấn</td>
+        <td align="right">309,000</td>
+        <td align="right">309,000</td>
+        <td align="right" style="color: black; font-weight: bold;">0</td>
+        <td>
+            Kho: no | Chung:         </td>
+    </tr>
+        <tr>
+        <td align="center">3</td>
+        <td align="center">11/12/2025</td>
+        <td align="center">Toi</td>
+        <td>Phạm Hải Anh</td>
+        <td align="right">571,000</td>
+        <td align="right">571,000</td>
+        <td align="right" style="color: black; font-weight: bold;">0</td>
+        <td>
+            Kho: đủ | Chung: ok rồi        </td>
+    </tr>
+        <tr>
+        <td align="center">4</td>
+        <td align="center">09/12/2025</td>
+        <td align="center">Toi</td>
+        <td>Nguyễn Huy Nghĩa</td>
+        <td align="right">377,000</td>
+        <td align="right">377</td>
+        <td align="right" style="color: red; font-weight: bold;">-376,623</td>
+        <td>
+            Kho: Đủ nha | Chung: Cố lên        </td>
+    </tr>
+    </table>
+</body>
+</html>

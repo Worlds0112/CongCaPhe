@@ -221,7 +221,7 @@ th.actions, td.actions { width: 180px; text-align: center; }
    ========================================= */
 /* Style cơ bản cho mọi nút */
 .btn-add, .btn-primary, .btn-secondary, .btn-excel, .btn-back, 
-.btn-add-user, .btn-save, .btn-submit, .btn-filter, .btn-filter-user {
+.btn-add-user, .btn-save, .btn-submit, .btn-filter, .btn-filter-user, .btn-reset {
     display: inline-flex; align-items: center; justify-content: center;
     padding: 10px 20px; border-radius: 6px; 
     font-weight: bold; text-decoration: none; border: none;

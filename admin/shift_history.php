@@ -88,7 +88,7 @@ $result_data = mysqli_query($conn, $sql_data);
 <div class="header-row">
     <h2 class="title-history" style="margin:0;">Lịch sử Kết Ca & Bàn Giao</h2>
 
-    <a href="export_shift_excel.php?<?php echo http_build_query($_GET); ?>" class="btn-excel" target="_blank">
+    <a href="../excel/export_shift_excel.php?<?php echo http_build_query($_GET); ?>" class="btn-excel" target="_blank">
         📥 Xuất Báo Cáo Excel
     </a>
 </div>

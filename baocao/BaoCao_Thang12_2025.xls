@@ -1,0 +1,343 @@
+﻿
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<body style="font-family: 'Times New Roman', serif; font-size: 12pt;">
+
+<table border="0" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+    <col width="50">
+    <col width="120">
+    <col width="100">
+    <col width="150">
+    <col width="150">
+    <col width="150">
+
+    <tr style="height: 40px;">
+        <td colspan="6" align="center" style="background-color: #548235; color: #ffffff; font-size: 18pt; font-weight: bold; vertical-align: middle;">
+            CONG CA PHE - BAO CAO         </td>
+    </tr>
+    <tr><td colspan="6"></td></tr>
+    
+    <tr>
+        <td colspan="6" align="center" style="font-size: 16pt; font-weight: bold;">
+                            BAO CAO DOANH THU THANG 12/2025                    </td>
+    </tr>
+    <tr><td colspan="6"></td></tr>
+
+    <tr style="height: 30px;">
+        <td align="center" style="background-color: #E2EFDA; border: 1px solid #000; font-weight: bold;">STT</td>
+        <td align="center" style="background-color: #E2EFDA; border: 1px solid #000; font-weight: bold;">Ngay</td>
+        <td align="center" style="background-color: #E2EFDA; border: 1px solid #000; font-weight: bold;">So Don</td>
+        <td align="center" style="background-color: #E2EFDA; border: 1px solid #000; font-weight: bold;">Doanh Thu</td>
+        <td align="center" style="background-color: #E2EFDA; border: 1px solid #000; font-weight: bold;">Tien Von</td>
+        <td align="center" style="background-color: #E2EFDA; border: 1px solid #000; font-weight: bold;">Loi Nhuan</td>
+    </tr>
+
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">1</td>
+            <td align="center" style="border: 1px solid #000;">01/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">5</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">928,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">257,500</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                670,500            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">2</td>
+            <td align="center" style="border: 1px solid #000;">02/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">3</td>
+            <td align="center" style="border: 1px solid #000;">03/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">4</td>
+            <td align="center" style="border: 1px solid #000;">04/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">5</td>
+            <td align="center" style="border: 1px solid #000;">05/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">6</td>
+            <td align="center" style="border: 1px solid #000;">06/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">7</td>
+            <td align="center" style="border: 1px solid #000;">07/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">8</td>
+            <td align="center" style="border: 1px solid #000;">08/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">9</td>
+            <td align="center" style="border: 1px solid #000;">09/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">3</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">507,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">138,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                369,000            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">10</td>
+            <td align="center" style="border: 1px solid #000;">10/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">1</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">129,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">29,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                100,000            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">11</td>
+            <td align="center" style="border: 1px solid #000;">11/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">4</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">571,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">139,100</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                431,900            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">12</td>
+            <td align="center" style="border: 1px solid #000;">12/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">13</td>
+            <td align="center" style="border: 1px solid #000;">13/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">14</td>
+            <td align="center" style="border: 1px solid #000;">14/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">15</td>
+            <td align="center" style="border: 1px solid #000;">15/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">3</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">254,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">50,800</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                203,200            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">16</td>
+            <td align="center" style="border: 1px solid #000;">16/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">17</td>
+            <td align="center" style="border: 1px solid #000;">17/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">18</td>
+            <td align="center" style="border: 1px solid #000;">18/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">19</td>
+            <td align="center" style="border: 1px solid #000;">19/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">20</td>
+            <td align="center" style="border: 1px solid #000;">20/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">21</td>
+            <td align="center" style="border: 1px solid #000;">21/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">22</td>
+            <td align="center" style="border: 1px solid #000;">22/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">1</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">55,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">16,500</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                38,500            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">23</td>
+            <td align="center" style="border: 1px solid #000;">23/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">24</td>
+            <td align="center" style="border: 1px solid #000;">24/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">25</td>
+            <td align="center" style="border: 1px solid #000;">25/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">26</td>
+            <td align="center" style="border: 1px solid #000;">26/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">27</td>
+            <td align="center" style="border: 1px solid #000;">27/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">3</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">224,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">49,500</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                174,500            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">28</td>
+            <td align="center" style="border: 1px solid #000;">28/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">5</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">430,000</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">98,500</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                331,500            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">29</td>
+            <td align="center" style="border: 1px solid #000;">29/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">30</td>
+            <td align="center" style="border: 1px solid #000;">30/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+            <tr style="height: 25px;">
+            <td align="center" style="border: 1px solid #000;">31</td>
+            <td align="center" style="border: 1px solid #000;">31/12/2025</td>
+            <td align="center" style="border: 1px solid #000;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; color: #8B4500;">-</td>
+            <td align="right" style="border: 1px solid #000; padding-right: 5px; font-weight: bold; color: #006400;">
+                -            </td>
+        </tr>
+    
+    <tr style="height: 35px;">
+        <td colspan="2" align="right" style="background-color: #548235; color: white; border: 1px solid #000; font-weight: bold; padding-right: 10px;">
+            TONG CONG:
+        </td>
+        <td align="center" style="background-color: #548235; color: white; border: 1px solid #000; font-weight: bold;">
+            25        </td>
+        <td align="right" style="background-color: #548235; color: white; border: 1px solid #000; font-weight: bold; padding-right: 5px;">
+            3,098,000        </td>
+        <td align="right" style="background-color: #548235; color: white; border: 1px solid #000; font-weight: bold; padding-right: 5px;">
+            778,900        </td>
+        <td align="right" style="background-color: #548235; color: white; border: 1px solid #000; font-weight: bold; padding-right: 5px;">
+            2,319,100        </td>
+    </tr>
+    
+    <tr><td colspan="6" height="20"></td></tr>
+    <tr>
+        <td colspan="3" align="center"><b>NGUOI LAP BAO CAO</b></td>
+        <td colspan="3" align="center"><b>QUAN LY</b></td>
+    </tr>
+    <tr>
+        <td colspan="3" align="center" style="color:#555; font-size:10pt;">(Ky ten)</td>
+        <td colspan="3" align="center" style="color:#555; font-size:10pt;">(Ky ten)</td>
+    </tr>
+
+</table>
+</body>
+</html>

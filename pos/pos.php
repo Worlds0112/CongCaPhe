@@ -181,12 +181,11 @@ if (mysqli_num_rows($result) > 0) {
             <div style="display:flex; gap:15px; margin-bottom:15px;">
                 <img id="opt-product-img" src="" style="width:80px; height:80px; border-radius:8px; object-fit:cover;">
                 <div>
-                    <div style="color:#666;">Giá gốc:</div>
+                    <div style="color:#666;">Giá</div>
                     <div id="opt-product-base-price" style="font-weight:bold;">0 đ</div>
                 </div>
             </div>
             <div class="opt-section">
-                <span class="opt-title">Số lượng món chính:</span>
                 <div class="topping-qty-ctrl" style="justify-content: center; width: 120px;">
                     <button class="btn-qty-top" onclick="changeMainQty(-1)">-</button>
                     <input type="number" id="input-main-qty" class="input-qty-top" value="1" min="1" style="width: 50px; font-weight:bold; font-size:16px;">
@@ -242,26 +241,32 @@ if (mysqli_num_rows($result) > 0) {
 <script>
     let cart = {}; 
     let currentProd = {}; 
-    let itemToDeleteKey = null; // Biến lưu key món cần xóa
+    let itemToDeleteKey = null; 
+    let editingCartKey = null; 
 
-    // --- 1. MỞ MODAL CHỌN MÓN ---
-    function openOptionModal(id, name, basePrice, img) {
+    // --- 1. MỞ MODAL ---
+    function openOptionModal(id, name, basePrice, img, isEditMode = false) {
         currentProd = { id: id, name: name, basePrice: basePrice, img: img };
         
         document.getElementById('opt-product-name').innerText = name;
         document.getElementById('opt-product-base-price').innerText = basePrice.toLocaleString() + ' đ';
         document.getElementById('opt-product-img').src = img;
-        
-        // --- BỔ SUNG DÒNG NÀY: Reset số lượng món chính về 1 ---
-        document.getElementById('input-main-qty').value = 1;
 
-        // Reset Form
-        document.getElementsByName('opt_size').forEach(r => { if(r.value === 'M') r.checked = true; });
-        document.getElementsByName('opt_ice').forEach(r => { if(r.value === '100%') r.checked = true; });
+        if (!isEditMode) {
+            document.getElementById('input-main-qty').value = 1;
+            document.getElementsByName('opt_size').forEach(r => { if(r.value === 'M') r.checked = true; });
+            document.getElementsByName('opt_ice').forEach(r => { if(r.value === '100%') r.checked = true; });
+            editingCartKey = null; 
+            updateModalButtons(false);
+        }
+
+        renderToppingList();
+        document.getElementById('productOptionModal').style.display = 'flex';
         
-        // ... (phần còn lại giữ nguyên) ...
-        
-        // Render danh sách Topping
+        if (!isEditMode) calculateModalPrice();
+    }
+
+    function renderToppingList() {
         const toppingContainer = document.getElementById('topping-list-container');
         const toppingSection = document.getElementById('section-topping');
         toppingContainer.innerHTML = ''; 
@@ -269,154 +274,201 @@ if (mysqli_num_rows($result) > 0) {
         if (toppingData && toppingData.length > 0) {
             toppingSection.style.display = 'block';
             toppingData.forEach(top => {
-                if(top.stock > 0) {
-                    let html = `
-                        <div class="topping-row">
-                            <div class="topping-info">
-                                <span>${top.name} (+${parseInt(top.price).toLocaleString()}đ)</span>
-                            </div>
-                            <div class="topping-qty-ctrl">
-                                <button class="btn-qty-top" onclick="changeTopQty(${top.id}, -1)">-</button>
-                                <input type="number" id="top-qty-${top.id}" class="input-qty-top" value="0" min="0" data-name="${top.name}" data-price="${top.price}" readonly>
-                                <button class="btn-qty-top" onclick="changeTopQty(${top.id}, 1)">+</button>
-                            </div>
-                        </div>`;
-                    toppingContainer.innerHTML += html;
-                }
+                let isLocked = (top.is_locked == 1);
+                let isOutOfStock = (top.stock <= 0);
+                let disableAttr = (isLocked || isOutOfStock) ? 'disabled' : '';
+                let opacityStyle = (isLocked || isOutOfStock) ? 'opacity: 0.5;' : '';
+                let statusText = isLocked ? '(Tạm ngưng)' : (isOutOfStock ? '(Hết hàng)' : '');
+
+                let html = `
+                    <div class="topping-row" style="${opacityStyle}">
+                        <div class="topping-info">
+                            <span>${top.name} <b style="color:red; font-size:12px;">${statusText}</b> (+${parseInt(top.price).toLocaleString()}đ)</span>
+                        </div>
+                        <div class="topping-qty-ctrl">
+                            <button class="btn-qty-top" onclick="changeTopQty(${top.id}, -1)" ${disableAttr}>-</button>
+                            <input type="number" id="top-qty-${top.id}" class="input-qty-top" value="0" min="0" 
+                                data-id="${top.id}" data-name="${top.name}" data-price="${top.price}" 
+                                onchange="manualTopQty(${top.id}, this.value)" onfocus="this.select()" ${disableAttr}>
+                            <button class="btn-qty-top" onclick="changeTopQty(${top.id}, 1)" ${disableAttr}>+</button>
+                        </div>
+                    </div>`;
+                toppingContainer.innerHTML += html;
             });
         } else {
             toppingSection.style.display = 'none';
         }
-
-        calculateModalPrice();
-        document.getElementById('productOptionModal').style.display = 'flex';
     }
 
-    function closeOptionModal() {
-        document.getElementById('productOptionModal').style.display = 'none';
-    }
-
-    // Tăng giảm số lượng Topping trong Modal
-    function changeTopQty(id, delta) {
-        let input = document.getElementById('top-qty-' + id);
-        let val = parseInt(input.value) || 0;
-        val += delta;
-        if(val < 0) val = 0;
-        input.value = val;
-        calculateModalPrice();
-    }
-// --- BỔ SUNG: Hàm tăng giảm số lượng món chính ---
-    function changeMainQty(delta) {
-        let input = document.getElementById('input-main-qty');
-        let val = parseInt(input.value) || 1;
-        val += delta;
-        if (val < 1) val = 1; // Không cho nhỏ hơn 1
-        input.value = val;
-        calculateModalPrice(); // Tính lại tiền ngay
-    }
-
-    // --- SỬA LẠI: Hàm tính giá trong Modal (Phải nhân với số lượng món chính) ---
-    function calculateModalPrice() {
-        // 1. Lấy số lượng món chính
-        let mainQty = parseInt(document.getElementById('input-main-qty').value) || 1;
-
-        // 2. Tính giá 1 đơn vị (Base + Size)
-        let oneItemPrice = currentProd.basePrice;
+    // --- SỬA MÓN TỪ GIỎ HÀNG ---
+    function editCartItem(key) {
+        if (!cart[key]) return;
+        let item = cart[key];
         
+        // Mở modal
+        openOptionModal(item.id, item.name, item.basePrice || 0, item.img || '', true);
+        editingCartKey = key; // Đánh dấu đang sửa
+
+        // Điền lại dữ liệu
+        document.getElementById('input-main-qty').value = item.mainContentQty; 
+        document.getElementsByName('opt_size').forEach(r => { if(r.value === item.options.size) r.checked = true; });
+        document.getElementsByName('opt_ice').forEach(r => { if(r.value === item.options.ice) r.checked = true; });
+
+        if (item.options.toppings) {
+            for (let [topId, qty] of Object.entries(item.options.toppings)) {
+                let input = document.getElementById('top-qty-' + topId);
+                if (input) input.value = qty;
+            }
+        }
+
+        updateModalButtons(true);
+        calculateModalPrice();
+    }
+
+    // --- LOGIC TÍNH TOÁN (ĐỘC LẬP) ---
+    function calculateModalPrice() {
+        let mainQty = parseInt(document.getElementById('input-main-qty').value) || 1;
+        let oneItemPrice = currentProd.basePrice;
         let sizeEl = document.querySelector('input[name="opt_size"]:checked');
         if(sizeEl) oneItemPrice += parseInt(sizeEl.getAttribute('data-price'));
         
-        // 3. Cộng tiền Topping (Topping cũng nhân theo số lượng món chính nếu muốn, 
-        // nhưng theo logic code cũ của bạn là cộng dồn topping vào giá 1 món)
+        let totalMainPrice = oneItemPrice * mainQty; // Giá nước * SL nước
+
         let totalToppingPrice = 0;
         let topInputs = document.querySelectorAll('.input-qty-top');
         topInputs.forEach(inp => {
             let qty = parseInt(inp.value) || 0;
             let p = parseInt(inp.getAttribute('data-price')) || 0;
-            totalToppingPrice += (qty * p); 
+            totalToppingPrice += (qty * p); // Topping cộng riêng
         });
 
-        // 4. Tổng tiền = (Giá 1 món + Topping của 1 món) * Số lượng món chính
-        // Hoặc: (Giá 1 món * SL) + (Topping * SL)
-        // Code dưới đây: Tổng tiền hiển thị = (Giá Base + Size + Topping) * Số lượng Main
-        let finalPrice = (oneItemPrice + totalToppingPrice) * mainQty;
-
-        document.getElementById('opt-total-price').innerText = finalPrice.toLocaleString() + ' đ';
+        let unitPrice = totalMainPrice + totalToppingPrice;
+        document.getElementById('opt-total-price').innerText = unitPrice.toLocaleString() + ' đ';
+        return unitPrice; 
     }
 
-    // --- 2. THÊM VÀO GIỎ (LOGIC TÁCH GIÁ) ---
+    function changeMainQty(delta) {
+        let input = document.getElementById('input-main-qty');
+        let currentVal = parseInt(input.value) || 1;
+        let newVal = currentVal + delta;
+        if (newVal < 1) return;
+
+        if (delta > 0) {
+            let maxStock = stockData[currentProd.id] || 0;
+            if (newVal > maxStock) { showToast(`⚠️ Hết hàng! Kho chỉ còn ${maxStock}.`, 'error'); return; }
+        }
+        input.value = newVal;
+        calculateModalPrice();
+    }
+
+    function changeTopQty(topId, delta) {
+        let input = document.getElementById('top-qty-' + topId);
+        let newVal = (parseInt(input.value) || 0) + delta;
+        if (newVal < 0) return;
+        if (delta > 0 && !checkTopStock(topId, newVal)) return;
+        input.value = newVal;
+        calculateModalPrice();
+    }
+
+    function manualTopQty(topId, valStr) {
+        let input = document.getElementById('top-qty-' + topId);
+        let newVal = parseInt(valStr) || 0;
+        if (newVal < 0) newVal = 0;
+        if (!checkTopStock(topId, newVal)) {
+             let topInfo = toppingData.find(t => t.id == topId);
+             newVal = topInfo ? parseInt(topInfo.stock) : 0;
+        }
+        input.value = newVal;
+        calculateModalPrice();
+    }
+
+    function checkTopStock(topId, quantityRequest) {
+        let topInfo = toppingData.find(t => t.id == topId);
+        let maxStock = topInfo ? parseInt(topInfo.stock) : 0;
+        if (quantityRequest > maxStock) { showToast(`⚠️ Topping hết hàng!`, 'error'); return false; }
+        return true;
+    }
+
+    // --- LƯU VÀO GIỎ HÀNG ---
     function confirmAddToCart(isBuyNow) {
+        let mainContentQty = parseInt(document.getElementById('input-main-qty').value) || 1;
         let id = currentProd.id;
-        let maxStock = stockData[id] || 0;
-
-        // --- BỔ SUNG: Lấy số lượng món chính từ input ---
-        let mainQty = parseInt(document.getElementById('input-main-qty').value) || 1;
-
-        // Tính tồn kho
-        let currentQtyInCart = 0;
-        for (let key in cart) { if (cart[key].id == id) currentQtyInCart += cart[key].quantity; }
-
-        // Kiểm tra tồn kho với số lượng muốn thêm (mainQty)
-        if (currentQtyInCart + mainQty > maxStock) {
-            showToast(`⚠️ Không thể thêm! Kho chỉ còn ${maxStock}.`, 'error');
-            return; 
+        
+        let cartMultiplier = 1; 
+        if (editingCartKey && cart[editingCartKey]) {
+            cartMultiplier = cart[editingCartKey].quantity; 
         }
 
-        // ... (Giữ nguyên phần lấy Size, Ice) ...
-        let size = document.querySelector('input[name="opt_size"]:checked').value;
-        let sizePrice = parseInt(document.querySelector('input[name="opt_size"]:checked').getAttribute('data-price'));
-        let ice = document.querySelector('input[name="opt_ice"]:checked').value;
-        
-        // ... (Giữ nguyên phần tính Main Price và Topping) ...
-        let mainItemPrice = currentProd.basePrice + sizePrice;
+        let maxStock = stockData[id] || 0;
+        if (mainContentQty * cartMultiplier > maxStock) {
+             showToast(`⚠️ Không đủ hàng! Kho còn ${maxStock}.`, 'error');
+             return;
+        }
 
-        let totalToppingPrice = 0; // Giá topping cho 1 phần
-        let toppingArr = [];
+        let size = document.querySelector('input[name="opt_size"]:checked').value;
+        let ice = document.querySelector('input[name="opt_ice"]:checked').value;
+        let unitPrice = calculateModalPrice(); 
+
+        let toppingMap = {}; 
         let toppingStrForKey = ""; 
-        
+        let noteTopping = [];
+
         let topInputs = document.querySelectorAll('.input-qty-top');
         topInputs.forEach(inp => {
             let qty = parseInt(inp.value) || 0;
-            let price = parseInt(inp.getAttribute('data-price')) || 0;
             if(qty > 0) {
                 let name = inp.getAttribute('data-name');
-                toppingArr.push(`${name} (x${qty})`);
+                let tId = inp.getAttribute('data-id');
+                noteTopping.push(`${name} (x${qty})`);
                 toppingStrForKey += `_${name}_${qty}`; 
-                totalToppingPrice += (qty * price);
+                toppingMap[tId] = qty;
             }
         });
-        
-        // Tổng tiền topping cho TOÀN BỘ số lượng món chính (Để lưu vào fixedToppingPrice)
-        let totalToppingAllParams = totalToppingPrice * mainQty;
 
-        let uniqueKey = `${currentProd.id}_${size}_${ice}${toppingStrForKey}`;
+        let uniqueKey = `${currentProd.id}_${mainContentQty}_${size}_${ice}${toppingStrForKey}`;
         
-        let note = `Size: ${size}, Đá: ${ice}`;
-        if(toppingArr.length > 0) note += `, Topping: ${toppingArr.join(', ')}`;
+        let note = `SL: ${mainContentQty}, Size: ${size}, Đá: ${ice}`;
+        if(noteTopping.length > 0) note += `, Topping: ${noteTopping.join(', ')}`;
 
-        if (cart[uniqueKey]) {
-            // Nếu món đã có: Tăng số lượng theo mainQty vừa chọn
-            cart[uniqueKey].quantity += mainQty;
-            cart[uniqueKey].fixedToppingPrice += totalToppingAllParams; 
+        let cartItem = {
+            id: currentProd.id, 
+            name: currentProd.name, 
+            img: currentProd.img,        
+            basePrice: currentProd.basePrice,
+            unitPrice: unitPrice, 
+            quantity: 1, 
+            mainContentQty: mainContentQty, 
+            note: note,
+            options: { size: size, ice: ice, toppings: toppingMap }
+        };
+
+        if (editingCartKey) {
+            // --- SỬA XONG -> QUAY VỀ GIỎ HÀNG ---
+            if (uniqueKey !== editingCartKey) delete cart[editingCartKey];
+            cartItem.quantity = cartMultiplier; 
+            cart[uniqueKey] = cartItem;
+            
+            showToast('✅ Đã cập nhật!', 'success');
+            
+            // QUAN TRỌNG: Mở lại giỏ hàng sau khi lưu
+            closeOptionModal();
+            updateCartBadge();
+            renderCartModal();
+            document.getElementById('cart-modal-overlay').style.display = 'flex'; // Hiện lại giỏ
+            
         } else {
-            // Món mới
-            cart[uniqueKey] = {
-                id: currentProd.id, 
-                name: currentProd.name, 
-                mainPrice: mainItemPrice, 
-                fixedToppingPrice: totalToppingAllParams, 
-                quantity: mainQty, // <-- SỬA Ở ĐÂY: Dùng mainQty thay vì số 1
-                note: note
-            };
+            // --- THÊM MỚI ---
+            if (cart[uniqueKey]) cart[uniqueKey].quantity += 1; 
+            else cart[uniqueKey] = cartItem;
+            
+            updateCartBadge();
+            closeOptionModal();
+            if (isBuyNow) { renderCartModal(); showCheckoutModal(); } 
+            else { showToast(`Đã thêm: <b>${currentProd.name}</b>`, 'info'); }
         }
-
-        updateCartBadge();
-        closeOptionModal();
-        if (isBuyNow) { renderCartModal(); showCheckoutModal(); } else { showToast(`Đã thêm: <b>${currentProd.name}</b>`, 'info'); }
     }
 
-    // --- 3. RENDER GIỎ HÀNG (QUAN TRỌNG: CÔNG THỨC TÍNH TIỀN) ---
-    // --- 3. RENDER GIỎ HÀNG (HIỂN THỊ CHI TIẾT GIÁ) ---
+    // --- CÁC HÀM KHÁC ---
     function renderCartModal() {
         let body = document.getElementById('cart-body');
         let totalSpan = document.getElementById('cart-total-price');
@@ -424,60 +476,39 @@ if (mysqli_num_rows($result) > 0) {
         body.innerHTML = '';
 
         if (Object.keys(cart).length === 0) {
-            body.innerHTML = `<div style="text-align:center;color:#999;padding-top:20px;">
-                                <div style="font-size: 30px; margin-bottom: 10px;">🛒</div>
-                                Giỏ hàng trống
-                              </div>`;
+            body.innerHTML = `<div style="text-align:center;color:#999;padding-top:20px;">Giỏ hàng trống</div>`;
             totalSpan.innerText = '0 đ';
             return;
         }
 
         for (let key in cart) {
             let item = cart[key];
-            
-            // Tính toán riêng lẻ
-            let mainTotal = item.mainPrice * item.quantity; // Tiền món chính (Tăng theo SL)
-            let toppingTotal = item.fixedToppingPrice;      // Tiền topping (Cố định)
-            let itemTotal = mainTotal + toppingTotal;       // Tổng dòng này
-            
+            let itemTotal = item.unitPrice * item.quantity;
             grandTotal += itemTotal;
-
-            // Xử lý Note
-            let displayNote = item.note;
-            if(displayNote.includes("Topping:")) {
-                // Ẩn topping khỏi dòng note vì đã có giá riêng, hoặc làm mờ đi
-                displayNote = displayNote.replace("Topping:", "<br><span style='opacity:0.7'>+ Topping:</span>");
-            }
+            let displayNote = item.note.replace("Topping:", "<br><span style='color:#E67E22; font-size:12px;'>+ Topping:</span>");
 
             body.innerHTML += `
                 <div class="cart-item">
-                    <div class="cart-item-left">
-                        <div class="cart-item-name">${item.name}</div>
-                        <div class="cart-item-note" style="font-size: 13px; color: #666; margin-top: 4px; line-height: 1.4;">
-                            ${displayNote}
+                    <div class="cart-item-left" onclick="toggleCart(); editCartItem('${key}')" style="cursor:pointer;" title="Sửa món này">
+                        <div class="cart-item-name" style="color:#007bff; display:flex; align-items:center; gap:5px;">
+                            ${item.name} <span style="font-size:12px;">✏️</span>
                         </div>
+                        <div class="cart-item-note">${displayNote}</div>
                     </div>
-                    
                     <div class="cart-item-right" style="align-items: flex-end;">
-                        
-                        <div style="text-align:right; font-size:12px; margin-bottom:5px; line-height:1.4;">
+                        <div style="text-align:right; font-size:12px; margin-bottom:5px;">
                             <div style="color:#28a745; font-weight:600;">
-                                ${item.mainPrice.toLocaleString()} x <b style="font-size:14px; color:#000;">${item.quantity}</b> = ${mainTotal.toLocaleString()}
+                                ${item.unitPrice.toLocaleString()} x <b style="font-size:14px;">${item.quantity}</b>
                             </div>
-                            
-                            ${toppingTotal > 0 ? `<div style="color:#666;">+ Topping: ${toppingTotal.toLocaleString()} (Cố định)</div>` : ''}
-                            
-                            <div style="border-top:1px solid #eee; margin-top:2px; padding-top:2px; font-weight:bold; color:#d32f2f;">
+                            <div style="border-top:1px solid #eee; margin-top:2px; font-weight:bold; color:#d32f2f;">
                                 = ${itemTotal.toLocaleString()} đ
                             </div>
                         </div>
-
                         <div class="cart-actions">
                             <button class="btn-sm-qty" onclick="changeCartQty('${key}', -1)">-</button>
-                            <input type="number" class="input-cart-qty" value="${item.quantity}" onchange="manualCartQty('${key}', this.value)">
+                            <input type="number" class="input-cart-qty" value="${item.quantity}" readonly>
                             <button class="btn-sm-qty" onclick="changeCartQty('${key}', 1)">+</button>
                         </div>
-                        
                         <button class="btn-del-item" onclick="removeItem('${key}')">×</button>
                     </div>
                 </div>`;
@@ -485,149 +516,68 @@ if (mysqli_num_rows($result) > 0) {
         totalSpan.innerText = grandTotal.toLocaleString('vi-VN') + ' đ';
     }
 
-    // --- 4. XỬ LÝ TĂNG GIẢM SỐ LƯỢNG & XÓA (CÓ MODAL) ---
-    
-    // Tăng giảm bằng nút
     function changeCartQty(key, delta) {
         if (!cart[key]) return;
-        let newQty = cart[key].quantity + delta;
-        
-        if (newQty <= 0) {
-            openDeleteModal(key); // Số lượng về 0 -> Hỏi xóa
-        } else {
-            checkAndSetQty(key, newQty);
-        }
-    }
-
-    // Nhập số trực tiếp
-    function manualCartQty(key, val) {
-        let newQty = parseInt(val) || 0;
-        if (newQty <= 0) {
-            openDeleteModal(key); // Nhập 0 -> Hỏi xóa
-        } else {
-            checkAndSetQty(key, newQty);
-        }
-    }
-
-    // Bấm nút X
-    function removeItem(key) {
-        openDeleteModal(key);
-    }
-
-    // Hàm kiểm tra tồn kho và cập nhật số lượng
-    function checkAndSetQty(key, newQty) {
-        let id = cart[key].id;
-        let maxStock = stockData[id] || 0;
-        
-        // Tính tổng số lượng của món này trong giỏ (để check tồn kho)
-        let otherQty = 0;
-        for (let k in cart) { 
-            if(cart[k].id == id && k !== key) otherQty += cart[k].quantity; 
-        }
-
-        if (otherQty + newQty > maxStock) {
-            showToast(`⚠️ Hết hàng! Kho chỉ còn ${maxStock}.`, 'error');
-            renderCartModal(); // Render lại để số lượng quay về cũ
-            return;
-        }
-        
-        cart[key].quantity = newQty;
-        updateCartBadge();
-        renderCartModal();
-    }
-
-    // --- LOGIC MODAL XÓA ---
-    function openDeleteModal(key) {
-        itemToDeleteKey = key;
-        document.getElementById('deleteConfirmModal').style.display = 'flex';
-    }
-
-    function closeDeleteModal() {
-        document.getElementById('deleteConfirmModal').style.display = 'none';
-        itemToDeleteKey = null;
-        renderCartModal(); // Render lại để reset ô input nếu người dùng hủy xóa
-    }
-
-    function confirmDeleteAction() {
-        if (itemToDeleteKey && cart[itemToDeleteKey]) {
-            delete cart[itemToDeleteKey];
-            updateCartBadge();
-            renderCartModal();
-            showToast('Đã xóa món khỏi giỏ', 'info');
-        }
-        closeDeleteModal();
-    }
-
-    // --- 5. THANH TOÁN (GỬI DỮ LIỆU CHUẨN ĐI) ---
-    async function submitCheckoutProcess() {
-        document.getElementById('checkoutConfirmModal').style.display = 'none';
-        <?php if (!$can_sell): ?>showToast("⛔ <?php echo $lock_reason; ?>", 'error'); return;<?php endif; ?>
-        
-        // CHUẨN BỊ DỮ LIỆU GỬI ĐI
-        // Vì Backend PHP thường tính: Total = Price * Quantity
-        // Nhưng logic mới của ta là: Total = (Main * Qty) + Topping
-        // => Ta phải tính ra một "Price ảo" (Effective Unit Price) để khi PHP nhân với Quantity sẽ ra đúng Total.
-        // Effective Price = Total / Quantity
-        
-        let cartToSend = {};
-        for (let key in cart) {
-            let item = cart[key];
-            let realTotal = (item.mainPrice * item.quantity) + item.fixedToppingPrice;
-            
-            // Tính giá trung bình để gửi cho PHP
-            let effectivePrice = realTotal / item.quantity;
-
-            cartToSend[key] = {
-                id: item.id,
-                price: effectivePrice, // Giá đã chia đều
-                quantity: item.quantity,
-                note: item.note
-            };
-        }
-
-        try {
-            const response = await fetch('checkout_process.php', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(cartToSend) // Gửi cart đã xử lý giá
-            });
-            const result = await response.json();
-            if (result.success) { 
-                showToast(result.message, 'success'); 
-                cart = {}; 
-                updateCartBadge(); 
-            } else { 
-                showToast(result.message, 'error'); 
+        let item = cart[key];
+        if (delta > 0) {
+            let maxStock = stockData[item.id] || 0;
+            if (item.mainContentQty * (item.quantity + 1) > maxStock) {
+                showToast(`⚠️ Hết hàng!`, 'error'); return;
             }
-        } catch (error) { 
-            showToast('Lỗi kết nối!', 'error'); 
         }
+        let newQty = item.quantity + delta;
+        if (newQty <= 0) openDeleteModal(key);
+        else { item.quantity = newQty; updateCartBadge(); renderCartModal(); }
     }
 
-    // --- CÁC HÀM CƠ BẢN KHÁC ---
-    function updateCartBadge() {
-        let count = 0;
-        for (let key in cart) count += cart[key].quantity;
-        document.getElementById('cart-badge').innerText = count;
+    function updateModalButtons(isEditing) {
+        const footer = document.querySelector('.opt-footer .btn-group-action');
+        if (isEditing) footer.innerHTML = `<button class="btn-add-cart" onclick="confirmAddToCart(false)" style="width:100%; background:#FF9800;">💾 Lưu & Quay lại Giỏ</button>`;
+        else footer.innerHTML = `<button class="btn-add-cart" onclick="confirmAddToCart(false)">Thêm vào giỏ</button><button class="btn-buy-now" onclick="confirmAddToCart(true)">Mua ngay</button>`;
     }
 
+    function removeItem(key) { openDeleteModal(key); }
+    function openDeleteModal(key) { itemToDeleteKey = key; document.getElementById('deleteConfirmModal').style.display = 'flex'; }
+    function closeDeleteModal() { document.getElementById('deleteConfirmModal').style.display = 'none'; itemToDeleteKey = null; renderCartModal(); }
+    function confirmDeleteAction() { if (itemToDeleteKey && cart[itemToDeleteKey]) { delete cart[itemToDeleteKey]; updateCartBadge(); renderCartModal(); showToast('Đã xóa món', 'info'); } closeDeleteModal(); }
+    function updateCartBadge() { let count = 0; for (let key in cart) count += cart[key].quantity; document.getElementById('cart-badge').innerText = count; }
+    
     function showCheckoutModal() {
         if (Object.keys(cart).length === 0) { showToast("Giỏ hàng trống!", 'error'); return; }
         let total = 0;
-        for (let key in cart) {
-            let item = cart[key];
-            total += (item.mainPrice * item.quantity) + item.fixedToppingPrice;
-        }
+        for (let key in cart) total += (cart[key].unitPrice * cart[key].quantity);
         document.getElementById('modal-checkout-total').innerText = total.toLocaleString('vi-VN') + ' đ';
         document.getElementById('cart-modal-overlay').style.display = 'none'; 
         document.getElementById('checkoutConfirmModal').style.display = 'flex'; 
     }
 
-    function toggleCart() {
-        let overlay = document.getElementById('cart-modal-overlay');
-        overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
-        if(overlay.style.display === 'flex') renderCartModal();
+    // --- HÀM HỦY THANH TOÁN (Mới) ---
+    function cancelCheckout() {
+        document.getElementById('checkoutConfirmModal').style.display = 'none';
+        document.getElementById('cart-modal-overlay').style.display = 'flex'; // Mở lại giỏ hàng
     }
+
+    function toggleCart() { let overlay = document.getElementById('cart-modal-overlay'); overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex'; if(overlay.style.display === 'flex') renderCartModal(); }
     document.getElementById('cart-modal-overlay').addEventListener('click', function(e){ if(e.target === this) toggleCart(); });
+    function closeOptionModal() { document.getElementById('productOptionModal').style.display = 'none'; editingCartKey = null; }
+
+    async function submitCheckoutProcess() {
+        document.getElementById('checkoutConfirmModal').style.display = 'none';
+        let cartToSend = {};
+        for (let key in cart) {
+            let item = cart[key];
+            cartToSend[key] = { id: item.id, price: item.unitPrice, quantity: item.quantity, note: item.note };
+        }
+        try {
+            const response = await fetch('checkout_process.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cartToSend) });
+            const result = await response.json();
+            if (result.success) { 
+                showToast(result.message, 'success'); 
+                cart = {}; updateCartBadge(); 
+                document.getElementById('cart-modal-overlay').style.display = 'none'; // Thành công thì tắt hết
+            } else { showToast(result.message, 'error'); }
+        } catch (error) { showToast('Lỗi kết nối!', 'error'); }
+    }
 
     function showToast(message, type = 'info') {
         let container = document.getElementById('toast-container');

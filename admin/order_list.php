@@ -146,7 +146,7 @@ if ($result) {
 <div class="header-row">
         <h2 class="title-order" style="margin: 0;">Quản lý Dòng tiền & Hóa đơn</h2>
         
-        <a href="export_orders_list_excel.php?<?php echo http_build_query($_GET); ?>" target="_blank" class="btn-excel">
+        <a href="../excel/export_orders_list_excel.php?<?php echo http_build_query($_GET); ?>" target="_blank" class="btn-excel">
             📥 Xuất Excel Báo Cáo
         </a>
     </div>
